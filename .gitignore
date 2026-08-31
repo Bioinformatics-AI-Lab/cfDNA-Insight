@@ -1,0 +1,14 @@
+data/raw/*
+!data/raw/.gitkeep
+data/ref/
+data/simulated/
+results/cache/
+results/smoke/
+results/features/
+*.pyc
+__pycache__/
+.ipynb_checkpoints/
+*.egg-info/
+.pytest_cache/
+.snakemake/
+.DS_Store

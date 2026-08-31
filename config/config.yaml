@@ -1,0 +1,39 @@
+# cfDNA-Insight configuration
+
+samples: config/samples.tsv
+genome: hg38
+
+reference:
+  fasta: data/ref/hg38.fa
+  blacklist: data/ref/hg38-blacklist.v2.bed
+
+binning:
+  bin_size: 100000        # GC correction happens at this scale
+  window_factor: 50       # -> 5 Mb reporting windows (DELFI convention)
+
+filters:
+  min_mapq: 30
+  min_fragment_length: 50
+  max_fragment_length: 1000
+
+fragmentomics:
+  short_range: [100, 150]
+  long_range: [151, 220]
+  size_histogram_range: [50, 400]
+  motif_k: 4
+
+modeling:
+  estimator: logistic     # logistic | gbm
+  outer_folds: 5
+  inner_folds: 4
+  n_repeats: 10
+  n_permutations: 200
+
+dilution:
+  fractions: [0.0, 0.005, 0.01, 0.02, 0.05, 0.10, 0.25, 0.50, 1.0]
+  total_fragments: 5000000
+  replicates: 5
+
+outputs:
+  features: results/features
+  results: results

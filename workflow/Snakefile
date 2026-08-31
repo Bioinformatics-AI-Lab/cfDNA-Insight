@@ -1,0 +1,92 @@
+"""Per-sample feature extraction, parallelised across cores.
+
+The pipeline is embarrassingly parallel until the modelling step, so this is
+one rule with a wildcard plus one aggregation rule. That is the honest size of
+the problem; anything more elaborate would be scaffolding.
+
+    snakemake -s workflow/Snakefile --cores 12
+"""
+
+import pandas as pd
+
+configfile: "config/config.yaml"
+
+samples = pd.read_csv(config["samples"], sep="\t")
+SAMPLE_PATH = dict(zip(samples["sample_id"], samples["path"]))
+SAMPLES = list(SAMPLE_PATH)
+FEATDIR = config["outputs"]["features"]
+RESDIR = config["outputs"]["results"]
+
+
+rule all:
+    input:
+        f"{RESDIR}/summary.json"
+
+
+rule bin_gc:
+    """Per-bin GC content. Computed once; every sample depends on it."""
+    input:
+        fasta=config["reference"]["fasta"]
+    output:
+        f"{RESDIR}/cache/bin_gc.parquet"
+    threads: 1
+    run:
+        import sys; sys.path.insert(0, "src")
+        from cfdna_insight.features import compute_bin_gc
+        compute_bin_gc(input.fasta,
+                       bin_size=config["binning"]["bin_size"],
+                       genome=config["genome"], cache=output[0])
+
+
+rule sample_features:
+    input:
+        frag=lambda w: SAMPLE_PATH[w.sample],
+        gc=f"{RESDIR}/cache/bin_gc.parquet"
+    output:
+        temp(f"{FEATDIR}/per_sample/{{sample}}.pkl")
+    threads: 1
+    run:
+        import pickle, sys; sys.path.insert(0, "src")
+        import pandas as pd
+        from cfdna_insight.features import extract_sample_features
+        blocks = extract_sample_features(
+            input.frag, wildcards.sample,
+            gc_track=pd.read_parquet(input.gc),
+            fasta_path=config["reference"]["fasta"],
+            bin_size=config["binning"]["bin_size"],
+            window_factor=config["binning"]["window_factor"],
+            genome=config["genome"],
+            min_mapq=config["filters"]["min_mapq"])
+        with open(output[0], "wb") as fh:
+            pickle.dump(blocks, fh)
+
+
+rule collect_features:
+    input:
+        expand(f"{FEATDIR}/per_sample/{{sample}}.pkl", sample=SAMPLES)
+    output:
+        f"{FEATDIR}/size_summary.parquet",
+        f"{FEATDIR}/samples_used.tsv"
+    run:
+        import pickle, sys; sys.path.insert(0, "src")
+        from cfdna_insight.features import save_features, stack_blocks
+        per = {}
+        for path in input:
+            sid = path.split("/")[-1].replace(".pkl", "")
+            with open(path, "rb") as fh:
+                per[sid] = pickle.load(fh)
+        save_features(stack_blocks(per), FEATDIR)
+        samples[samples["sample_id"].isin(per)].to_csv(
+            output[1], sep="\t", index=False)
+
+
+rule evaluate:
+    input:
+        f"{FEATDIR}/samples_used.tsv"
+    output:
+        f"{RESDIR}/summary.json"
+    shell:
+        "python scripts/02_train_evaluate.py "
+        "--features {FEATDIR} --outdir {RESDIR} "
+        "--n-repeats {config[modeling][n_repeats]} "
+        "--n-perm {config[modeling][n_permutations]}"
