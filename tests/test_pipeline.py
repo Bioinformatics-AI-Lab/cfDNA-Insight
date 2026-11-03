@@ -238,3 +238,36 @@ def test_estimate_lod_picks_lowest_passing_level():
         "score": [0.1, 0.1, 0.1, 0.9] + [0.9] * 4 + [0.9] * 4,
     })
     assert estimate_lod(df, threshold=0.5) == 0.1
+
+
+# --------------------------------------------------- genome build selection
+
+def test_hg19_and_hg38_centromeres_differ():
+    """Regression: make_bins once used hg38 centromeres for every build."""
+    b38 = bins.make_bins(bin_size=1_000_000, genome="hg38")
+    b19 = bins.make_bins(bin_size=1_000_000, genome="hg19")
+    arms38 = b38.set_index("bin_id")["arm"]
+    arms19 = b19.set_index("bin_id")["arm"]
+    common = arms38.index.intersection(arms19.index)
+    assert (arms38[common] != arms19[common]).any(), \
+        "hg19 and hg38 arm assignments are identical - build is being ignored"
+
+
+def test_hg19_arm_split_matches_hg19_centromere():
+    b = bins.make_bins(bin_size=1_000_000, genome="hg19")
+    for chrom in ("chr1", "chr12", "chr22"):
+        cen_start = bins.HG19_CENTROMERE[chrom][0]
+        p_arm = b[(b["chrom"] == chrom) & (b["arm"] == f"{chrom}p")]
+        assert p_arm["start"].max() < cen_start
+
+
+def test_hg19_sizes_used_for_hg19():
+    b19 = bins.make_bins(bin_size=1_000_000, genome="hg19")
+    b38 = bins.make_bins(bin_size=1_000_000, genome="hg38")
+    assert (b19["chrom"] == "chr1").sum() == bins.HG19_SIZES["chr1"] // 1_000_000
+    assert (b38["chrom"] == "chr1").sum() == bins.HG38_SIZES["chr1"] // 1_000_000
+
+
+def test_unsupported_genome_rejected():
+    with pytest.raises(ValueError, match="unsupported genome"):
+        bins.make_bins(genome="hg17")

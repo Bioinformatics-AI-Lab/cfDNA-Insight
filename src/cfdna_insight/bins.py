@@ -48,21 +48,53 @@ HG38_CENTROMERE = {
     "chr21": (10900000, 13000000), "chr22": (13700000, 17400000),
 }
 
+# hg19 centromere spans (UCSC gap track). These differ from hg38 by several
+# megabases on some chromosomes, which is enough to misassign whole 5 Mb
+# windows to the wrong arm — so the build must be selected, not assumed.
+HG19_CENTROMERE = {
+    "chr1": (121535434, 124535434), "chr2": (92326171, 95326171),
+    "chr3": (90504854, 93504854), "chr4": (49660117, 52660117),
+    "chr5": (46405641, 49405641), "chr6": (58830166, 61830166),
+    "chr7": (58054331, 61054331), "chr8": (43838887, 46838887),
+    "chr9": (47367679, 50367679), "chr10": (39254935, 42254935),
+    "chr11": (51644205, 54644205), "chr12": (34856694, 37856694),
+    "chr13": (16000000, 19000000), "chr14": (16000000, 19000000),
+    "chr15": (17000000, 20000000), "chr16": (35335801, 38335801),
+    "chr17": (22263006, 25263006), "chr18": (15460898, 18460898),
+    "chr19": (24681782, 27681782), "chr20": (26369569, 29369569),
+    "chr21": (11288129, 14288129), "chr22": (13000000, 16000000),
+}
+
+SUPPORTED_GENOMES = ("hg38", "hg19")
+
+
+def _check_genome(genome: str) -> str:
+    if genome not in SUPPORTED_GENOMES:
+        raise ValueError(
+            f"unsupported genome {genome!r}; expected one of {SUPPORTED_GENOMES}")
+    return genome
+
 
 def get_sizes(genome: str = "hg38") -> dict[str, int]:
-    return dict(HG38_SIZES if genome == "hg38" else HG19_SIZES)
+    return dict(HG38_SIZES if _check_genome(genome) == "hg38" else HG19_SIZES)
+
+
+def get_centromeres(genome: str = "hg38") -> dict[str, tuple[int, int]]:
+    return dict(HG38_CENTROMERE if _check_genome(genome) == "hg38"
+                else HG19_CENTROMERE)
 
 
 def make_bins(bin_size: int = 100_000, genome: str = "hg38",
               chroms: list[str] | None = None) -> pd.DataFrame:
     """Fixed-width bins tiling the autosomes, with arm annotation."""
     sizes = get_sizes(genome)
+    centromeres = get_centromeres(genome)
     chroms = chroms or AUTOSOMES
     rows = []
     for chrom in chroms:
         n = sizes[chrom] // bin_size
         starts = np.arange(n, dtype=np.int64) * bin_size
-        cen_start, cen_end = HG38_CENTROMERE[chrom]
+        cen_start, cen_end = centromeres[chrom]
         mids = starts + bin_size // 2
         arm = np.where(mids < cen_start, "p", "q")
         in_cen = (starts + bin_size > cen_start) & (starts < cen_end)

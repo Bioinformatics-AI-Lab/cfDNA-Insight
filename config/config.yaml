@@ -1,11 +1,15 @@
 # cfDNA-Insight configuration
+#
+# Build is hg19: the CRAG validation-cohort fragment files on Zenodo
+# (record 6914806) are *.hg19.frag.bed.gz. Mixing builds in one sample sheet
+# is not supported — bin coordinates would not correspond.
 
 samples: config/samples.tsv
-genome: hg38
+genome: hg19
 
 reference:
-  fasta: data/ref/hg38.fa
-  blacklist: data/ref/hg38-blacklist.v2.bed
+  fasta: data/ref/hg19.fa
+  blacklist: data/ref/hg19-blacklist.v2.bed
 
 binning:
   bin_size: 100000        # GC correction happens at this scale
