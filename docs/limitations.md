@@ -5,41 +5,36 @@ what this project can and cannot be claimed to show.
 
 ## Limitations specific to the result obtained
 
-**The headline signal is aneuploidy, and aneuploidy is stage-dependent.** The
-cohort is heavily early-stage (9 Stage IA, 9 Stage IIA of 25 breast). That the
-signal is detectable here is notable, but per-stage breakdown at n=25 breast
-would be uninterpretable, so none is reported. Whether detection degrades at
-Stage I specifically cannot be answered with these data.
+**Stage dependence.** The cohort is heavily early-stage (9 Stage IA, 9 Stage
+IIA of 25 breast). Per-stage breakdown at this n would not be interpretable,
+so none is reported, and whether detection degrades at Stage I specifically is
+not answerable from these data.
 
-**The fragment-size null is a null on this cohort, not a refutation.** DELFI
-returned 0.625 and fragment-size summaries 0.500. Three explanations remain
-open and these data cannot separate them: coverage too low for stable
-per-window short/long ratios at 1-3x; disease too early to shed detectably;
-or the within-sample z-scoring in `delfi_profile` discarding the global size
-shift that carries the signal. The third is a choice this pipeline made (see
-methodology) and could be tested directly by reporting the uncentred profile —
-at the cost of reintroducing the pre-analytical confounding the centring
-removes.
+**The fragment-size null.** DELFI gives 0.625 and fragment-size summaries
+0.500. Three explanations remain open: coverage too low for stable per-window
+ratios at 1-3x, disease too early to shed detectably, or the within-sample
+z-scoring in `delfi_profile` discarding the global size shift. The last is a
+choice made here (see methodology) and could be tested by reporting the
+uncentred profile, at the cost of reintroducing the pre-analytical
+confounding the centring removes.
 
-**End motifs cannot be claimed as an independent modality.** They drop from
-0.894 to 0.593 once chromosome entropy is partialled out. Any downstream use
-of the motif block should treat it as a second view of copy number.
+**End motifs are not a separate modality.** 0.894 raw, 0.593 with chromosome
+entropy partialled out. Any downstream use should treat the block as a second
+view of copy number.
 
-**The mediator-adjustment columns are not interpretable in both directions.**
-Partialling out aneuploidy inflates unrelated blocks, including the negative
-control. Only decreases in those columns carry information.
+**Mediator-adjustment columns.** Partialling out aneuploidy inflates unrelated
+blocks including the negative control. Only decreases in those columns carry
+information.
 
-**Two features is a small enough model to be luck.** `an_chr_entropy` and
-`an_coverage_cv` reaching 0.866 on 66 samples is consistent with a real effect
-and also with a fortunate pair of summary statistics. The paired test
-(30 of 33, p = 3e-07) is the stronger evidence; the AUC is the weaker one.
-Replication in an independent cohort is the only thing that settles it, and no
-such cohort was available.
+**Two features on 66 samples.** `an_chr_entropy` and `an_coverage_cv` at 0.866
+is consistent with a real effect and also with a lucky pair of summary
+statistics. The paired test (30 of 33, p = 3e-07) is the stronger evidence.
+Replication in an independent cohort would settle it; none was available.
 
-**Leave-one-cancer-type-out is not external validation.** 0.824 overall and
-0.969 breast-to-liver come from one lab, one protocol, five shared batches. It
-tests transfer across tumour biology and nothing else. The breast-held-out
-direction (0.773) trains on 16 samples and should not be quoted on its own.
+**Leave-one-cancer-type-out is not external validation.** 0.824 overall,
+0.969 breast to liver, from one lab and five shared batches. It tests transfer
+across tumour type only. The breast-held-out direction (0.773) trains on 16
+samples and should not be quoted alone.
 
 ## Design
 
@@ -64,14 +59,14 @@ measures how bad it is, but it cannot remove it.
 **Fragment files, not raw reads.** Alignment parameters are fixed by FinaleDB's
 pipeline. Their uniform reprocessing is a genuine advantage for cross-study
 comparison, but it means this project cannot investigate whether the choice of
-aligner or trimming affects the result — the very thing it would want to check
+aligner or trimming affects the result ,  the very thing it would want to check
 when a cross-study comparison fails.
 
 **Reads trimmed to 50 bp.** Fragment length inference is preserved (trimming
 removes inner bases, not the outer 5' ends), but anything requiring read
 sequence beyond the ends is unavailable.
 
-**Low coverage.** Most public cfDNA WGS is 1–3×. That is sufficient for
+**Low coverage.** Most public cfDNA WGS is 1-3×. That is sufficient for
 megabase-scale fragmentation profiles and arm-level copy number and insufficient
 for anything at finer resolution.
 
