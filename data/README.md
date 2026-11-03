@@ -40,24 +40,38 @@ Fetch with:
     bash scripts/00_fetch_crag.sh liver      # start here — 3.3 GB, 8 pairs
     bash scripts/00_fetch_crag.sh breast     # 11.0 GB, 25 pairs
 
-### Open question: what the trailing `m` means
+### What the trailing `m` means — RESOLVED
 
-Every sample appears twice — `MAL0638.hg19.frag.bed.gz` and
-`MAL0638m.hg19.frag.bed.gz`. The counts match the paper's cohort exactly
-(25 + 25 breast, 8 + 8 liver), so the pair is almost certainly case and matched
-control. **Which member is which is not documented** — not in the paper, not in
-the Zenodo record, not in the file names.
+`MAL0638` is the cancer case; `MAL0638m` is that patient's matched control.
 
-Getting it backwards silently inverts every label in the study.
-`00_build_samplesheet.py` therefore requires `--m-is control|cancer` and will
-not guess.
+Source: Supplementary Table 2 of Zhou et al., *Genome Medicine* 2022
+(Additional file 1 on the journal page, **not** the similarly-named
+`Supplemantary_Table 2_Hotspots.zip` on Zenodo, which holds per-cohort hotspot
+intervals and no sample IDs). Table S2 is laid out one row per pair, with
+`Subject_ID` the case and `Control Subject_ID` the matched control; the control
+ID is the case ID with `m` appended, and the rule holds for all 33 pairs with
+no exceptions. `00_extract_metadata.py` re-verifies it on every run and refuses
+to emit labels if it ever fails.
 
-Do **not** settle this by comparing fragment lengths and assuming the shorter
-group is cancer. That is the hypothesis under test; using it to assign labels
-guarantees a confirmation. Settle it from Additional file 1 Table S2 of the
-paper, or by emailing the corresponding author (lyping1986@gmail.com).
+Cohort as recorded in Table S2: 33 pairs — 25 breast, 8 liver. Case and control
+ages match exactly, pair by pair.
 
-**Resolved as of (date): _______ — `m` = _______ , source: _______**
+**Batch structure is the part worth knowing.** Table S2 carries
+`Library Preparation Batch` and `Sequencing Batch` (5 batches, Cabat1–5), and
+every pair's case and control share both. Batch is therefore orthogonal to
+label by construction, not merely claimed to be. That is what makes the
+technical-covariate negative control in `02_train_evaluate.py` a real test: in
+a cohort where cases and controls were prepared separately, that control fires
+by construction and tells you nothing. Here it should sit near chance, and if
+it does not, the cause is something other than case/control batch aliasing.
+
+To regenerate:
+
+    python scripts/00_extract_metadata.py --xlsx <Additional file 1>.xlsx
+
+writes `data/metadata/crag_table_s2.tsv` (66 rows: label, cancer type, stage,
+grade, age, gender, smoking, alcohol, batch, sequencing ID), which
+`00_build_samplesheet.py` then uses as the authoritative label source.
 
 ### Study structure, and what can honestly be claimed
 
@@ -115,12 +129,23 @@ in this pipeline.
 
 ## Sample sheet
 
-    python scripts/00_build_samplesheet.py --m-is control
+    python scripts/00_extract_metadata.py --xlsx <Additional file 1>.xlsx
+    python scripts/00_build_samplesheet.py
 
 Required columns are `sample_id`, `path`, `label` (`cancer` or `healthy`) and
 `study`. The builder also emits `cancer_type`, `pair_id` and `size_mb`;
 `pair_id` lets you keep a case and its matched control in the same CV fold if
-you later decide that matters.
+you later decide that matters, and the clinical columns from Table S2 feed the
+confounder cross-tabs in notebook 01.
+
+Before modelling, sanity-check the pairing with:
+
+    python scripts/00_check_pairing.py --raw data/raw/crag/liver
+
+It compares exact fragment coordinates (never lengths) between each `X`/`Xm`
+pair against an unrelated-sample baseline. Table S2 already says they are
+different people; this confirms the deposited files match that claim rather
+than being two versions of one library.
 
 ## Licensing
 

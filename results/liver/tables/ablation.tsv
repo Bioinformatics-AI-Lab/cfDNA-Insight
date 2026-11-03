@@ -1,0 +1,8 @@
+label	auc_mean	auc_lo	auc_hi	n	n_pos	n_features	blocks
+CNV arms only	0.9625	0.925	0.996875	16	8	44	cnv
+end motifs only	0.840625	0.7875	0.859375	16	8	256	motif
+TECHNICAL ONLY (negative control)	0.753125	0.603125	0.8875	16	8	5	technical
+all biological	0.73125	0.703125	0.765625	16	8	1074	size_summary,size_hist,delfi,cnv,motif
+size histogram only	0.490625	0.309375	0.621875	16	8	234	size_hist
+DELFI profile only	0.459375	0.353125	0.5671875	16	8	530	delfi
+size summary only	0.4375	0.315625	0.5890625	16	8	10	size_summary

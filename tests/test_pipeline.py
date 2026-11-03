@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from cfdna_insight import bins, cnv, fragmentomics as fx, modeling, simulate
 from cfdna_insight.dilution import estimate_lod, mix_fragments
 from cfdna_insight.features import extract_sample_features, stack_blocks
-from cfdna_insight.io import SampleSheet, read_fragments
+from cfdna_insight.io import SampleSheet, _sniff_columns, read_fragments
 
 
 @pytest.fixture(scope="module")
@@ -271,3 +271,250 @@ def test_hg19_sizes_used_for_hg19():
 def test_unsupported_genome_rejected():
     with pytest.raises(ValueError, match="unsupported genome"):
         bins.make_bins(genome="hg17")
+
+
+# ------------------------------------------- real-world fragment file layouts
+
+def _write_crag_style(path):
+    """Replica of the CRAG layout: '#' header, 8 columns, no 'chr' prefix."""
+    import gzip
+    rng = np.random.default_rng(7)
+    with gzip.open(path, "wt") as fh:
+        fh.write("#chrom\tstart\tend\tname\tmapq\tstrand\tcigar1\tcigar2\n")
+        for _ in range(3000):
+            c = int(rng.integers(1, 23))
+            s = int(rng.integers(10000, 40_000_000))
+            ln = int(rng.integers(80, 250))
+            q = int(rng.integers(0, 61))
+            st = "+" if rng.random() < 0.5 else "-"
+            fh.write(f"{c}\t{s}\t{s+ln}\t.\t{q}\t{st}\t100M\t100M\n")
+    return str(path)
+
+
+def test_reads_crag_eight_column_format(tmp_path):
+    p = _write_crag_style(tmp_path / "MAL9999.hg19.frag.bed.gz")
+    df = read_fragments(p, min_mapq=30)
+    assert len(df) > 0
+    assert list(df.columns) == ["chrom", "start", "end", "mapq", "strand", "length"]
+    assert df["chrom"].astype(str).str.startswith("chr").all()
+    assert (df["mapq"] >= 30).all()
+    assert (df["length"] == df["end"] - df["start"]).all()
+
+
+def test_sniff_names_every_column(tmp_path):
+    p = _write_crag_style(tmp_path / "s.frag.bed.gz")
+    names = _sniff_columns(p)
+    assert len(names) == 8
+    assert names[:6] == ["chrom", "start", "end", "name", "mapq", "strand"]
+
+
+def test_cigar_columns_not_loaded(tmp_path):
+    """The big string columns must stay out of memory."""
+    p = _write_crag_style(tmp_path / "s.frag.bed.gz")
+    df = read_fragments(p)
+    assert not any(c.startswith("extra") for c in df.columns)
+
+
+def test_headerless_bed_still_works(tmp_path):
+    import gzip
+    p = tmp_path / "plain.frag.gz"
+    with gzip.open(p, "wt") as fh:
+        for i in range(500):
+            fh.write(f"chr1\t{10000+i*300}\t{10000+i*300+160}\t40\t+\n")
+    df = read_fragments(str(p))
+    assert len(df) == 500
+    assert set(["chrom", "start", "end", "mapq", "strand"]) <= set(df.columns)
+
+
+# ------------------------------------------------- fold-safe CNV transformer
+
+def _toy_coverage(n_healthy=12, n_cancer=12, n_win=60, seed=0):
+    rng = np.random.default_rng(seed)
+    cov = rng.normal(1.0, 0.03, (n_healthy + n_cancer, n_win))
+    cov[n_healthy:, :15] *= 1.15          # arm-level gain in the cancer group
+    idx = [f"s{i}" for i in range(len(cov))]
+    cols = [f"chr1:{i}" for i in range(n_win)]
+    arms = pd.Series(["chr1p"] * 30 + ["chr1q"] * 30, index=cols)
+    y = np.array([0] * n_healthy + [1] * n_cancer)
+    return pd.DataFrame(cov, index=idx, columns=cols), arms, y
+
+
+def test_reference_transformer_uses_training_healthy_only():
+    cov, arms, y = _toy_coverage()
+    tr = cnv.HealthyReferenceTransformer(arms)
+    train = np.arange(0, 18)
+    tr.fit(cov.iloc[train], y[train])
+    # the reference must be the median of TRAINING healthy rows only
+    expected = cov.iloc[[i for i in train if y[i] == 0]].median(axis=0)
+    assert np.allclose(tr.reference_.median.to_numpy(), expected.to_numpy())
+
+
+def test_reference_transformer_needs_y():
+    cov, arms, y = _toy_coverage()
+    with pytest.raises(ValueError, match="needs y"):
+        cnv.HealthyReferenceTransformer(arms).fit(cov)
+
+
+def test_reference_transformer_rejects_too_few_healthy():
+    cov, arms, y = _toy_coverage()
+    with pytest.raises(ValueError, match="need >=3 healthy"):
+        cnv.HealthyReferenceTransformer(arms).fit(cov.iloc[-4:], y[-4:])
+
+
+def test_transform_output_is_stable_shape():
+    cov, arms, y = _toy_coverage()
+    tr = cnv.HealthyReferenceTransformer(arms).fit(cov, y)
+    out = tr.transform(cov)
+    assert len(out) == len(cov)
+    assert list(out.columns) == tr.feature_names_
+
+
+def test_foldsafe_cnv_runs_and_detects_real_signal():
+    cov, arms, y = _toy_coverage()
+    res = modeling.nested_cv_foldsafe_cnv(cov, arms, y, n_repeats=2)
+    assert 0.0 <= res.auc_mean <= 1.0
+    assert res.auc_mean > 0.7      # the planted gain is real, not a leak
+
+
+def test_foldsafe_cnv_near_chance_on_label_free_coverage():
+    """No planted signal -> fold-safe CNV must not manufacture one."""
+    rng = np.random.default_rng(3)
+    cols = [f"chr1:{i}" for i in range(60)]
+    cov = pd.DataFrame(rng.normal(1.0, 0.03, (24, 60)),
+                       index=[f"s{i}" for i in range(24)], columns=cols)
+    arms = pd.Series(["chr1p"] * 30 + ["chr1q"] * 30, index=cols)
+    y = np.array([0] * 12 + [1] * 12)
+    res = modeling.nested_cv_foldsafe_cnv(cov, arms, y, n_repeats=2)
+    assert res.auc_mean < 0.75
+
+
+def test_null_pvalue_shape():
+    rng = np.random.default_rng(4)
+    y = np.array([0] * 10 + [1] * 10)
+    X = pd.DataFrame(rng.normal(0, 1, (20, 5)))
+    p, mu, sd = modeling.null_pvalue(X, y, observed=0.75, n_perm=20)
+    assert 0 < p <= 1 and 0.3 < mu < 0.7 and sd > 0
+
+
+def test_transformer_feature_names_span_training_fold():
+    """Names come from the whole training fold, not one probe row."""
+    cov, arms, y = _toy_coverage()
+    tr = cnv.HealthyReferenceTransformer(arms).fit(cov, y)
+    out = tr.transform(cov)
+    assert list(out.columns) == tr.feature_names_
+    assert out.notna().any(axis=0).all()
+
+
+def test_assemble_matrix_drops_sparse_columns():
+    """An arm seen in only a few samples must not survive into CV."""
+    X = pd.DataFrame({
+        "dense": np.arange(10.0),
+        "sparse": [1.0, 2.0] + [np.nan] * 8,
+        "const": np.ones(10),
+    }, index=[f"s{i}" for i in range(10)])
+    out = modeling.assemble_matrix({"a": X}, ["a"], list(X.index))
+    assert list(out.columns) == ["dense"]
+
+
+def test_assemble_matrix_keeps_mostly_present_columns():
+    X = pd.DataFrame({
+        "mostly": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, np.nan],
+        "dense": np.arange(10.0),
+    }, index=[f"s{i}" for i in range(10)])
+    out = modeling.assemble_matrix({"a": X}, ["a"], list(X.index))
+    assert set(out.columns) == {"mostly", "dense"}
+
+
+def test_assemble_matrix_errors_when_nothing_usable():
+    X = pd.DataFrame({"const": np.ones(6)}, index=[f"s{i}" for i in range(6)])
+    with pytest.raises(ValueError, match="no usable features"):
+        modeling.assemble_matrix({"a": X}, ["a"], list(X.index))
+
+
+# ------------------------------------------------------ confounder residuals
+
+def _load_audit():
+    import importlib.util, os
+    p = os.path.join(os.path.dirname(__file__), "..", "scripts",
+                     "04_confounder_audit.py")
+    spec = importlib.util.spec_from_file_location("audit", p)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_residualise_removes_linear_dependence():
+    rng = np.random.default_rng(0)
+    depth = rng.normal(7, 0.3, 60)
+    X = pd.DataFrame({
+        "driven": 3.0 * depth + rng.normal(0, 0.05, 60),
+        "free": rng.normal(0, 1, 60),
+    })
+    out = _load_audit().residualise(X, depth)
+    assert abs(np.corrcoef(out["driven"], depth)[0, 1]) < 0.05
+    assert abs(np.corrcoef(out["free"], depth)[0, 1]) < 0.35
+
+
+def test_residualise_preserves_independent_signal():
+    rng = np.random.default_rng(1)
+    depth = rng.normal(7, 0.3, 60)
+    signal = np.r_[np.zeros(30), np.ones(30)]
+    X = pd.DataFrame({"f": signal + rng.normal(0, 0.1, 60)})
+    out = _load_audit().residualise(X, depth)
+    assert abs(np.corrcoef(out["f"], signal)[0, 1]) > 0.8
+
+
+def test_residualise_tolerates_constant_and_nan():
+    rng = np.random.default_rng(2)
+    depth = rng.normal(7, 0.3, 40)
+    X = pd.DataFrame({
+        "const": np.ones(40),
+        "sparse": [np.nan] * 36 + [1.0, 2.0, 3.0, 4.0],
+        "ok": rng.normal(0, 1, 40),
+    })
+    out = _load_audit().residualise(X, depth)
+    assert out.shape == X.shape
+    assert (out["const"] == 1.0).all()
+
+
+# ---------------------------------------- technical / aneuploidy separation
+
+def test_technical_block_holds_no_biological_features(healthy_file):
+    """Regression: chromosome entropy once sat in the negative control."""
+    frags = read_fragments(healthy_file)
+    binned = fx.bin_short_long(frags)
+    tech = cnv.technical_covariates(frags, binned)
+    for banned in ("entropy", "coverage_cv"):
+        assert not any(banned in k for k in tech.index), \
+            f"{banned} is a copy-number readout and must not be in the " \
+            f"negative control"
+    assert set(tech.index) == {
+        "tech_n_fragments", "tech_log10_n_fragments",
+        "tech_median_mapq", "tech_frac_bins_zero"}
+
+
+def test_aneuploidy_block_present(healthy_file):
+    frags = read_fragments(healthy_file)
+    binned = fx.bin_short_long(frags)
+    an = cnv.aneuploidy_covariates(frags, binned)
+    assert set(an.index) == {"an_chr_entropy", "an_coverage_cv"}
+    assert np.isfinite(an["an_chr_entropy"])
+
+
+def test_split_legacy_technical_moves_columns():
+    from cfdna_insight.features import split_legacy_technical
+    idx = ["s1", "s2"]
+    blocks = {"technical": pd.DataFrame(
+        {"tech_n_fragments": [1.0, 2.0], "tech_chr_entropy": [0.9, 0.8],
+         "tech_coverage_cv": [0.3, 0.4]}, index=idx)}
+    out = split_legacy_technical(blocks)
+    assert list(out["technical"].columns) == ["tech_n_fragments"]
+    assert set(out["aneuploidy"].columns) == {"an_chr_entropy", "an_coverage_cv"}
+
+
+def test_split_legacy_technical_is_noop_when_already_split():
+    from cfdna_insight.features import split_legacy_technical
+    blocks = {"technical": pd.DataFrame({"tech_n_fragments": [1.0]},
+                                        index=["s1"])}
+    out = split_legacy_technical(blocks)
+    assert "aneuploidy" not in out

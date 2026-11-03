@@ -35,32 +35,89 @@ def _open_maybe_gzip(path: str):
     return open(path, "rt")
 
 
+# Columns this pipeline actually reads. Everything else in the file is named
+# but left unparsed, which also keeps the big string columns (CIGAR, name) out
+# of memory on files with tens of millions of rows.
+WANTED = ("chrom", "start", "end", "mapq", "strand")
+
+# Header spellings seen in the wild, mapped to our names.
+_ALIASES = {
+    "chrom": "chrom", "chr": "chrom", "chromosome": "chrom", "#chrom": "chrom",
+    "start": "start", "chromstart": "start",
+    "end": "end", "chromend": "end", "stop": "end",
+    "name": "name", "id": "name",
+    "mapq": "mapq", "score": "mapq", "quality": "mapq",
+    "strand": "strand",
+}
+
+
 def _sniff_columns(path: str) -> list[str]:
-    """Detect whether the 4th column is a name field or the mapq field."""
+    """Name every column in the file, so pandas is never short a name.
+
+    Two layouts occur. FinaleDB ships bare BED-like rows with no header. The
+    CRAG fragment files carry a `#`-prefixed header and two extra CIGAR
+    columns:
+
+        #chrom  start  end  name  mapq  strand  cigar1  cigar2
+
+    A fixed 6-name guess silently breaks on the second: pandas rejects a
+    `names` list shorter than the row when `usecols` is in play. So the header
+    is used when there is one, and otherwise names are assigned positionally
+    with any surplus columns named `extra_N` rather than dropped.
+    """
+    header: list[str] | None = None
+    fields: list[str] | None = None
+
     with _open_maybe_gzip(path) as fh:
         for line in fh:
-            if line.startswith(("#", "track", "browser")):
+            line = line.rstrip("\n")
+            if not line.strip():
                 continue
-            fields = line.rstrip("\n").split("\t")
+            if line.startswith("#"):
+                if header is None:
+                    header = line.lstrip("#").split("\t")
+                continue
+            if line.startswith(("track", "browser")):
+                continue
+            fields = line.split("\t")
             break
-        else:
-            raise ValueError(f"{path} contains no data rows")
 
+    if fields is None:
+        raise ValueError(f"{path} contains no data rows")
     n = len(fields)
     if n < 3:
         raise ValueError(f"{path}: expected >=3 columns, found {n}")
+
+    if header is not None and len(header) == n:
+        names, seen = [], set()
+        for i, h in enumerate(header):
+            nm = _ALIASES.get(h.strip().lower().lstrip("#"), None)
+            if nm is None or nm in seen:
+                nm = f"extra_{i}"
+            seen.add(nm)
+            names.append(nm)
+        if {"chrom", "start", "end"} <= set(names):
+            return names
+        # header present but unrecognisable — fall through to positional
+
     if n == 3:
         return ["chrom", "start", "end"]
     if n == 4:
-        return ["chrom", "start", "end", "mapq"]
+        # 4th column is mapq if it parses as an integer, else a name field
+        try:
+            int(fields[3])
+            return ["chrom", "start", "end", "mapq"]
+        except ValueError:
+            return ["chrom", "start", "end", "name"]
     if n == 5:
-        # ambiguous; decide on whether col 4 parses as an integer
         try:
             int(fields[3])
             return ["chrom", "start", "end", "mapq", "strand"]
         except ValueError:
             return ["chrom", "start", "end", "name", "mapq"]
-    return ["chrom", "start", "end", "name", "mapq", "strand"][:n]
+
+    base = ["chrom", "start", "end", "name", "mapq", "strand"]
+    return base + [f"extra_{i}" for i in range(6, n)]
 
 
 def read_fragments(
@@ -78,11 +135,13 @@ def read_fragments(
     discards sub-nucleosomal noise that is mostly adapter artefact.
     """
     names = _sniff_columns(path)
-    usecols = [c for c in names if c != "name"]
+    usecols = [c for c in names if c in WANTED]
 
     df = pd.read_csv(
         path, sep="\t", header=None, names=names, usecols=usecols,
-        comment="#", dtype={"chrom": str}, engine="c",
+        comment="#", engine="c",
+        dtype={"chrom": str, "start": "int64", "end": "int64",
+               "mapq": "int16", "strand": "category"},
     )
 
     if add_chr_prefix:

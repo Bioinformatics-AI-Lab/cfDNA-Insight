@@ -1,99 +1,140 @@
 #!/usr/bin/env python3
 """Build samples.tsv from the extracted CRAG fragment files.
 
-    python scripts/00_build_samplesheet.py --m-is control
+    python scripts/00_extract_metadata.py --xlsx <Additional file 1>.xlsx
+    python scripts/00_build_samplesheet.py
 
-THE LABEL MAPPING IS NOT DOCUMENTED ANYWHERE, SO THIS SCRIPT WILL NOT GUESS IT.
+LABELS
 
-Every CRAG validation sample appears twice: `MAL0638.hg19.frag.bed.gz` and
-`MAL0638m.hg19.frag.bed.gz`. The counts line up exactly with the paper's
-cohort — 25 breast and 8 liver tumour plasma samples, each with a matched
-control — so the pair is almost certainly case and matched control. But
-neither the paper, the Zenodo record, nor the file names say which member of
-the pair is which, and getting it backwards silently inverts every label in
-the study.
+Labels come from data/metadata/crag_table_s2.tsv, extracted from Supplementary
+Table 2 of Zhou et al., Genome Medicine 2022. That table is laid out one row
+per case-control pair, with `Subject_ID` the cancer patient and
+`Control Subject_ID` the matched control — and the control ID is the case ID
+with `m` appended, for all 33 pairs.
 
-Do not settle this by comparing fragment lengths between the two groups and
-assuming the shorter one is cancer. That is the hypothesis under test; using
-it to assign labels guarantees you "confirm" it. Settle it from Additional
-file 1 Table S2 of the paper, or by emailing the corresponding author
-(lyping1986@gmail.com), and record the answer in data/README.md.
+So `MAL0638` is the case and `MAL0638m` is the matched control. This was an
+open question earlier in the project and is now settled from the source.
 
-Two sheets are written:
+If the metadata file is absent, `--m-is` applies the same rule by convention
+and every row is flagged unverified. Prefer the metadata file: it also carries
+stage, grade, age, gender, smoking, alcohol and batch.
+
+STUDY GROUPING
+
+Two sheets are written, because the honest grouping and the useful one differ:
 
   config/samples.tsv
-      study = crag_validation for every row. This is the truthful grouping:
-      one cohort, one lab, one protocol. Leave-one-study-out will correctly
-      report that cross-study generalisation is untested.
+      study = crag_validation for every row. One cohort, one lab, one
+      protocol. Leave-one-study-out will correctly report cross-study
+      generalisation as untested.
 
   config/samples_by_cancer_type.tsv
-      study = crag_breast / crag_liver. Running the pipeline against this
-      sheet performs leave-one-CANCER-TYPE-out instead: train on breast plus
-      its controls, test on liver plus its controls. Weaker than a true
-      cross-cohort test, since the protocol and lab are shared, but it does
-      test whether the signal transfers across tumour biology. Report it
-      under that name, never as cross-study validation.
+      study = crag_breast / crag_liver. Running against this sheet performs
+      leave-one-CANCER-TYPE-out: train on breast plus its controls, test on
+      liver plus its controls. Weaker than a true cross-cohort test — protocol
+      and lab are shared — but it does test whether the signal transfers
+      across tumour biology. Report it under that name, never as cross-study.
+
+A third grouping is available from the metadata: `seq_batch` (Cabat1-5). Note
+that grouping by batch is NOT a confounding test here, because each pair's
+case and control were processed in the same batch, so batch is orthogonal to
+label by construction. That is a property worth stating in the write-up, and
+it is why the technical-covariate negative control is a real test.
 """
 
 from __future__ import annotations
 
 import argparse
+import csv
 import os
 import re
 import sys
 
 PATTERN = re.compile(r"^(MAL\d+)(m?)\.hg19\.frag\.bed\.gz$")
+META_DEFAULT = "data/metadata/crag_table_s2.tsv"
+
+EXTRA = ["stage", "grade", "age", "gender", "smoking", "alcohol",
+         "lib_batch", "seq_batch", "seq_id"]
+
+
+def load_metadata(path: str) -> dict[str, dict[str, str]]:
+    with open(path) as fh:
+        return {r["sample_id"]: r for r in csv.DictReader(fh, delimiter="\t")}
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--raw", default="data/raw/crag")
     ap.add_argument("--outdir", default="config")
-    ap.add_argument(
-        "--m-is", required=True, choices=["control", "cancer"],
-        help="What the trailing 'm' means. REQUIRED — see the module "
-             "docstring. Verify before trusting any result.")
+    ap.add_argument("--metadata", default=META_DEFAULT)
+    ap.add_argument("--m-is", choices=["control", "cancer"], default=None,
+                    help="Fallback only, used when --metadata is missing.")
     args = ap.parse_args()
 
-    rows = []
+    meta = {}
+    if os.path.exists(args.metadata):
+        meta = load_metadata(args.metadata)
+        print(f"[info] labels from {args.metadata} ({len(meta)} samples)")
+    elif args.m_is:
+        print(f"[warn] {args.metadata} not found; falling back to "
+              f"--m-is {args.m_is} (UNVERIFIED)")
+    else:
+        print(f"[error] {args.metadata} not found and no --m-is given.\n"
+              f"        run scripts/00_extract_metadata.py first, or pass "
+              f"--m-is control to apply the convention unverified.",
+              file=sys.stderr)
+        return 1
+
+    rows, unknown = [], []
     for dirpath, _, filenames in os.walk(args.raw):
-        group = os.path.basename(dirpath)
-        cancer_type = "liver" if group.startswith("liver") else "breast"
         for fn in sorted(filenames):
             m = PATTERN.match(fn)
             if not m:
                 continue
-            base, suffix = m.group(1), m.group(2)
-            is_m = suffix == "m"
-            if args.m_is == "control":
-                label = "healthy" if is_m else "cancer"
+            sid = m.group(1) + m.group(2)
+            is_m = m.group(2) == "m"
+            path = os.path.join(dirpath, fn)
+            row = {
+                "sample_id": sid, "path": path, "pair_id": m.group(1),
+                "size_mb": round(os.path.getsize(path) / 1e6, 1),
+            }
+            if meta:
+                if sid not in meta:
+                    unknown.append(sid)
+                    continue
+                md = meta[sid]
+                row["label"] = md["label"]
+                row["cancer_type"] = md["cancer_type"]
+                row.update({k: md.get(k, "NA") for k in EXTRA})
             else:
-                label = "cancer" if is_m else "healthy"
-            rows.append({
-                "sample_id": base + suffix,
-                "path": os.path.join(dirpath, fn),
-                "label": label,
-                "pair_id": base,
-                "cancer_type": cancer_type,
-                "size_mb": round(os.path.getsize(os.path.join(dirpath, fn)) / 1e6, 1),
-            })
+                row["label"] = ("healthy" if is_m else "cancer") \
+                    if args.m_is == "control" else \
+                    ("cancer" if is_m else "healthy")
+                row["cancer_type"] = ("liver"
+                                      if os.path.basename(dirpath).startswith("liver")
+                                      else "breast")
+                row.update({k: "NA" for k in EXTRA})
+            rows.append(row)
 
     if not rows:
-        print(f"[error] no *.hg19.frag.bed.gz under {args.raw}", file=sys.stderr)
-        print("        run scripts/00_fetch_crag.sh first", file=sys.stderr)
+        print(f"[error] no *.hg19.frag.bed.gz under {args.raw}; run "
+              f"scripts/00_fetch_crag.sh first", file=sys.stderr)
         return 1
+    if unknown:
+        print(f"[warn] {len(unknown)} files absent from the metadata, "
+              f"skipped: {sorted(unknown)[:5]}")
 
     rows.sort(key=lambda r: (r["cancer_type"], r["pair_id"], r["label"]))
     os.makedirs(args.outdir, exist_ok=True)
-
-    cols = ["sample_id", "path", "label", "study", "cancer_type", "pair_id", "size_mb"]
+    cols = (["sample_id", "path", "label", "study", "cancer_type", "pair_id"]
+            + EXTRA + ["size_mb"])
 
     def write(path: str, study_of) -> None:
         with open(path, "w") as fh:
             fh.write("\t".join(cols) + "\n")
             for r in rows:
                 r = {**r, "study": study_of(r)}
-                fh.write("\t".join(str(r[c]) for c in cols) + "\n")
+                fh.write("\t".join(str(r.get(c, "NA")) for c in cols) + "\n")
 
     main_sheet = os.path.join(args.outdir, "samples.tsv")
     alt_sheet = os.path.join(args.outdir, "samples_by_cancer_type.tsv")
@@ -101,21 +142,32 @@ def main() -> int:
     write(alt_sheet, lambda r: "crag_" + r["cancer_type"])
 
     n_cancer = sum(r["label"] == "cancer" for r in rows)
-    unpaired = [p for p in {r["pair_id"] for r in rows}
-                if sum(r["pair_id"] == p for r in rows) != 2]
-
     print(f"[ok] {len(rows)} samples: {n_cancer} cancer, "
           f"{len(rows) - n_cancer} healthy")
     for ct in sorted({r["cancer_type"] for r in rows}):
         sub = [r for r in rows if r["cancer_type"] == ct]
-        print(f"     {ct}: {len(sub)} files, {len(sub) // 2} pairs")
-    if unpaired:
-        print(f"[warn] {len(unpaired)} ids without exactly 2 files: "
-              f"{sorted(unpaired)[:5]}")
+        print(f"     {ct}: {len(sub)} files "
+              f"({sum(s['label'] == 'cancer' for s in sub)} cancer)")
+
+    broken = [p for p in {r["pair_id"] for r in rows}
+              if sorted(r["label"] for r in rows if r["pair_id"] == p)
+              != ["cancer", "healthy"]]
+    if broken:
+        print(f"[warn] {len(broken)} pair_ids lack exactly one cancer and one "
+              f"healthy file: {sorted(broken)[:5]}")
+        print("       (expected while only part of the cohort is downloaded)")
+
+    if meta:
+        batches = {r["seq_batch"] for r in rows if r["seq_batch"] != "NA"}
+        mixed = [p for p in {r["pair_id"] for r in rows}
+                 if len({r["seq_batch"] for r in rows if r["pair_id"] == p}) > 1]
+        print(f"[ok] {len(batches)} sequencing batches; "
+              f"{len(mixed)} pairs split across batches "
+              f"({'none — batch is orthogonal to label' if not mixed else 'CHECK THIS'})")
+    else:
+        print(f"\n[UNVERIFIED] labels assume trailing 'm' = {args.m_is}.")
+
     print(f"[ok] wrote {main_sheet} and {alt_sheet}")
-    print()
-    print(f"[UNVERIFIED] labels assume trailing 'm' = {args.m_is}. "
-          f"Confirm against Table S2 before reporting anything.")
     return 0
 
 

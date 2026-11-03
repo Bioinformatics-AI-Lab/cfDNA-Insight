@@ -1,0 +1,67 @@
+sample_id	path	label	study	cancer_type	pair_id	stage	grade	age	gender	smoking	alcohol	lib_batch	seq_batch	seq_id	size_mb
+MAL0638	data/raw/crag/breast_1/MAL0638.hg19.frag.bed.gz	cancer	crag_breast	breast	MAL0638	Stage IA	G1	54	Female	Yes. 1 pack / day for 34 years	Yes. 3 drinks/week	3	Cabat3	Cabat3_5	163.3
+MAL0638m	data/raw/crag/breast_1/MAL0638m.hg19.frag.bed.gz	healthy	crag_breast	breast	MAL0638	NA	NA	54	Female	2	1	3	Cabat3	Cabat3_22	163.1
+MAL0642	data/raw/crag/breast_1/MAL0642.hg19.frag.bed.gz	cancer	crag_breast	breast	MAL0642	Stage IA	G1	55	Female	Former. 0.5 pack per day for 7 years. Quit smoking about 23 years prior	Yes. 1/2 glass red wine daily	3	Cabat3	Cabat3_6	194.2
+MAL0642m	data/raw/crag/breast_1/MAL0642m.hg19.frag.bed.gz	healthy	crag_breast	breast	MAL0642	NA	NA	55	Female	1	1	3	Cabat3	Cabat3_47	173.5
+MAL0665	data/raw/crag/breast_1/MAL0665.hg19.frag.bed.gz	cancer	crag_breast	breast	MAL0665	Stage IIIA	G3	54	Female	Former. 0.5 pack per day for 20 years. Quit about 11 years prior	No	2	Cabat2	Cabat2_4	143.1
+MAL0665m	data/raw/crag/breast_1/MAL0665m.hg19.frag.bed.gz	healthy	crag_breast	breast	MAL0665	NA	NA	54	Female	1	0	2	Cabat2	Cabat2_43	490.4
+MAL0681	data/raw/crag/breast_1/MAL0681.hg19.frag.bed.gz	cancer	crag_breast	breast	MAL0681	Stage IIA	G2	45	Female	Former smoker. Not quantified	No	2	Cabat2	Cabat2_48	48.7
+MAL0681m	data/raw/crag/breast_1/MAL0681m.hg19.frag.bed.gz	healthy	crag_breast	breast	MAL0681	NA	NA	45	Female	1	0	2	Cabat2	Cabat2_54	19.1
+MAL0711	data/raw/crag/breast_1/MAL0711.hg19.frag.bed.gz	cancer	crag_breast	breast	MAL0711	Stage IIA	G2	67	Female	Former. Quit about 35 years prior	Yes, occasionally	2	Cabat2	Cabat2_7	76.3
+MAL0711m	data/raw/crag/breast_1/MAL0711m.hg19.frag.bed.gz	healthy	crag_breast	breast	MAL0711	NA	NA	67	Female	1	1	2	Cabat2	Cabat2_40	260.9
+MAL0718	data/raw/crag/breast_1/MAL0718.hg19.frag.bed.gz	cancer	crag_breast	breast	MAL0718	Stage IA	G3	30	Female	Never	No / socially	1	Cabat1	Cabat1_30	202.7
+MAL0718m	data/raw/crag/breast_1/MAL0718m.hg19.frag.bed.gz	healthy	crag_breast	breast	MAL0718	NA	NA	30	Female	0	0	1	Cabat1	Cabat1_27	337.6
+MAL0719	data/raw/crag/breast_1/MAL0719.hg19.frag.bed.gz	cancer	crag_breast	breast	MAL0719	Stage IIA	G1	64	Female	Never	No	5	Cabat5	Cabat5_53	184.4
+MAL0719m	data/raw/crag/breast_2/MAL0719m.hg19.frag.bed.gz	healthy	crag_breast	breast	MAL0719	NA	NA	64	Female	0	0	5	Cabat5	Cabat5_13	180.9
+MAL0728	data/raw/crag/breast_2/MAL0728.hg19.frag.bed.gz	cancer	crag_breast	breast	MAL0728	Stage IIA	G2	57	Female	Former	No	1	Cabat1	Cabat1_39	220.3
+MAL0728m	data/raw/crag/breast_2/MAL0728m.hg19.frag.bed.gz	healthy	crag_breast	breast	MAL0728	NA	NA	57	Female	1	0	1	Cabat1	Cabat1_40	138.0
+MAL0730	data/raw/crag/breast_2/MAL0730.hg19.frag.bed.gz	cancer	crag_breast	breast	MAL0730	Stage IIA	G2	71	Female	Yes. 0.25 pack per day	Yes, occasionally	2	Cabat2	Cabat2_50	450.2
+MAL0730m	data/raw/crag/breast_2/MAL0730m.hg19.frag.bed.gz	healthy	crag_breast	breast	MAL0730	NA	NA	71	Female	2	1	2	Cabat2	Cabat2_41	169.0
+MAL0760	data/raw/crag/breast_2/MAL0760.hg19.frag.bed.gz	cancer	crag_breast	breast	MAL0760	Stage IA	G1	60	Female	Former. Quit about 6 years prior	No	4	Cabat4	Cabat4_50	14.0
+MAL0760m	data/raw/crag/breast_2/MAL0760m.hg19.frag.bed.gz	healthy	crag_breast	breast	MAL0760	NA	NA	60	Female	1	0	4	Cabat4	Cabat4_38	297.2
+MAL0766	data/raw/crag/breast_2/MAL0766.hg19.frag.bed.gz	cancer	crag_breast	breast	MAL0766	Stage IA	G1	52	Female	Never	Yes, 1-2 mixed drinks/month	4	Cabat4	Cabat4_12	32.3
+MAL0766m	data/raw/crag/breast_2/MAL0766m.hg19.frag.bed.gz	healthy	crag_breast	breast	MAL0766	NA	NA	52	Female	0	1	4	Cabat4	Cabat4_21	230.5
+MAL0769	data/raw/crag/breast_2/MAL0769.hg19.frag.bed.gz	cancer	crag_breast	breast	MAL0769	Stage IA	G2	61	Female	Never	No	3	Cabat3	Cabat3_26	257.4
+MAL0769m	data/raw/crag/breast_2/MAL0769m.hg19.frag.bed.gz	healthy	crag_breast	breast	MAL0769	NA	NA	61	Female	0	0	3	Cabat3	Cabat3_27	199.0
+MAL0779	data/raw/crag/breast_2/MAL0779.hg19.frag.bed.gz	cancer	crag_breast	breast	MAL0779	Stage IB	G2	48	Female	Former. 1 pack per day for 11 years. Quit 2 months prior	No	4	Cabat4	Cabat4_51	252.3
+MAL0779m	data/raw/crag/breast_2/MAL0779m.hg19.frag.bed.gz	healthy	crag_breast	breast	MAL0779	NA	NA	48	Female	1	0	4	Cabat4	Cabat4_58	482.5
+MAL0801	data/raw/crag/breast_3/MAL0801.hg19.frag.bed.gz	cancer	crag_breast	breast	MAL0801	Stage IA	G2	50	Female	Never	Yes	1	Cabat1	Cabat1_6	135.3
+MAL0801m	data/raw/crag/breast_3/MAL0801m.hg19.frag.bed.gz	healthy	crag_breast	breast	MAL0801	NA	NA	50	Female	0	1	1	Cabat1	Cabat1_28	400.5
+MAL0809	data/raw/crag/breast_3/MAL0809.hg19.frag.bed.gz	cancer	crag_breast	breast	MAL0809	Stage IA	-	50	Female	Yes. 1 pack per day	Yes	3	Cabat3	Cabat3_7	142.3
+MAL0809m	data/raw/crag/breast_3/MAL0809m.hg19.frag.bed.gz	healthy	crag_breast	breast	MAL0809	NA	NA	50	Female	2	1	3	Cabat3	Cabat3_45	254.8
+MAL0842	data/raw/crag/breast_3/MAL0842.hg19.frag.bed.gz	cancer	crag_breast	breast	MAL0842	Stage IA	G2	61	Female	Never	Yes, socially	5	Cabat5	Cabat5_54	271.5
+MAL0842m	data/raw/crag/breast_3/MAL0842m.hg19.frag.bed.gz	healthy	crag_breast	breast	MAL0842	NA	NA	61	Female	0	1	5	Cabat5	Cabat5_24	154.7
+MAL0851	data/raw/crag/breast_3/MAL0851.hg19.frag.bed.gz	cancer	crag_breast	breast	MAL0851	Stage IIB	G1	54	Female	Never	Yes, 1-3 glasses/month	4	Cabat4	Cabat4_22	256.7
+MAL0851m	data/raw/crag/breast_3/MAL0851m.hg19.frag.bed.gz	healthy	crag_breast	breast	MAL0851	NA	NA	54	Female	0	1	4	Cabat4	Cabat4_41	316.2
+MAL0866	data/raw/crag/breast_3/MAL0866.hg19.frag.bed.gz	cancer	crag_breast	breast	MAL0866	Stage IIA	G2	70	Female	Never	Yes, rarely a glass of wine	1	Cabat1	Cabat1_9	132.3
+MAL0866m	data/raw/crag/breast_3/MAL0866m.hg19.frag.bed.gz	healthy	crag_breast	breast	MAL0866	NA	NA	70	Female	0	1	1	Cabat1	Cabat1_46	443.9
+MAL0883	data/raw/crag/breast_3/MAL0883.hg19.frag.bed.gz	cancer	crag_breast	breast	MAL0883	Stage IIA	G3	47	Female	Never	Yes, occasionally	5	Cabat5	Cabat5_39	181.9
+MAL0883m	data/raw/crag/breast_3/MAL0883m.hg19.frag.bed.gz	healthy	crag_breast	breast	MAL0883	NA	NA	47	Female	0	1	5	Cabat5	Cabat5_1	170.4
+MAL0887	data/raw/crag/breast_3/MAL0887.hg19.frag.bed.gz	cancer	crag_breast	breast	MAL0887	Stage IIA	G2	74	Female	Former. Quit about 12 years prior	Yes. 2 glasses wine per night	5	Cabat5	Cabat5_43	211.1
+MAL0887m	data/raw/crag/breast_4/MAL0887m.hg19.frag.bed.gz	healthy	crag_breast	breast	MAL0887	NA	NA	74	Female	1	1	5	Cabat5	Cabat5_36	264.8
+MAL0889	data/raw/crag/breast_4/MAL0889.hg19.frag.bed.gz	cancer	crag_breast	breast	MAL0889	Stage IIA	G3	51	Female	Never	No	1	Cabat1	Cabat1_1	263.6
+MAL0889m	data/raw/crag/breast_4/MAL0889m.hg19.frag.bed.gz	healthy	crag_breast	breast	MAL0889	NA	NA	51	Female	0	0	1	Cabat1	Cabat1_48	74.8
+MAL1002	data/raw/crag/breast_4/MAL1002.hg19.frag.bed.gz	cancer	crag_breast	breast	MAL1002	Stage IIIA	G2	72	Female	Never	No	2	Cabat2	Cabat2_20	421.8
+MAL1002m	data/raw/crag/breast_4/MAL1002m.hg19.frag.bed.gz	healthy	crag_breast	breast	MAL1002	NA	NA	72	Female	0	0	2	Cabat2	Cabat2_53	283.1
+MAL1149	data/raw/crag/breast_4/MAL1149.hg19.frag.bed.gz	cancer	crag_breast	breast	MAL1149	Stage IIIA	G2	49	Female	Yes. 0.5 pack per day for 32 years	Yes, 3 drinks per week	1	Cabat1	Cabat1_50	212.3
+MAL1149m	data/raw/crag/breast_4/MAL1149m.hg19.frag.bed.gz	healthy	crag_breast	breast	MAL1149	NA	NA	49	Female	2	1	1	Cabat1	Cabat1_14	482.9
+MAL1164	data/raw/crag/breast_4/MAL1164.hg19.frag.bed.gz	cancer	crag_breast	breast	MAL1164	Stage IIIA	G2	55	Female	Never	No	2	Cabat2	Cabat2_28	176.4
+MAL1164m	data/raw/crag/breast_4/MAL1164m.hg19.frag.bed.gz	healthy	crag_breast	breast	MAL1164	NA	NA	55	Female	0	0	2	Cabat2	Cabat2_27	99.0
+MAL1261	data/raw/crag/breast_4/MAL1261.hg19.frag.bed.gz	cancer	crag_breast	breast	MAL1261	Stage IIIB	G2	51	Female	Never	No	2	Cabat2	Cabat2_58	258.6
+MAL1261m	data/raw/crag/breast_4/MAL1261m.hg19.frag.bed.gz	healthy	crag_breast	breast	MAL1261	NA	NA	51	Female	0	0	2	Cabat2	Cabat2_30	48.3
+MAL0646	data/raw/crag/liver/MAL0646.hg19.frag.bed.gz	cancer	crag_liver	liver	MAL0646	1a	G2	66	Female	Yes. 1.5 ppd x 50 years	Yes. 1/2 pint wiskey daily	5	Cabat5	Cabat5_51	274.2
+MAL0646m	data/raw/crag/liver/MAL0646m.hg19.frag.bed.gz	healthy	crag_liver	liver	MAL0646	NA	NA	66	Female	2	1	5	Cabat5	Cabat5_32	221.7
+MAL0714	data/raw/crag/liver/MAL0714.hg19.frag.bed.gz	cancer	crag_liver	liver	MAL0714	2	G2	62	Male	Yes. 40 Pack year history, continues to smoke 1 cig daily	none since diagnosed with liver disease	3	Cabat3	Cabat3_44	204.4
+MAL0714m	data/raw/crag/liver/MAL0714m.hg19.frag.bed.gz	healthy	crag_liver	liver	MAL0714	NA	NA	62	Male	2	1	3	Cabat3	Cabat3_32	242.5
+MAL0944	data/raw/crag/liver/MAL0944.hg19.frag.bed.gz	cancer	crag_liver	liver	MAL0944	2	G2	64	Male	Yes. 1.5 PPD	No	3	Cabat3	Cabat3_49	173.2
+MAL0944m	data/raw/crag/liver/MAL0944m.hg19.frag.bed.gz	healthy	crag_liver	liver	MAL0944	NA	NA	64	Male	2	0	3	Cabat3	Cabat3_50	251.4
+MAL0945	data/raw/crag/liver/MAL0945.hg19.frag.bed.gz	cancer	crag_liver	liver	MAL0945	1a	G1	56	Female	Former smoker (not quantified)	History of alcohol abuse (not quantified), quit for 1.5 months at time of sample obtainment	1	Cabat1	Cabat1_43	106.3
+MAL0945m	data/raw/crag/liver/MAL0945m.hg19.frag.bed.gz	healthy	crag_liver	liver	MAL0945	NA	NA	56	Female	1	1	1	Cabat1	Cabat1_26	171.7
+MAL1205	data/raw/crag/liver/MAL1205.hg19.frag.bed.gz	cancer	crag_liver	liver	MAL1205	1b	G1	77	Male	Never	Yes, Once a month	1	Cabat1	Cabat1_5	204.1
+MAL1205m	data/raw/crag/liver/MAL1205m.hg19.frag.bed.gz	healthy	crag_liver	liver	MAL1205	NA	NA	77	Male	0	1	1	Cabat1	Cabat1_33	118.3
+MAL1237	data/raw/crag/liver/MAL1237.hg19.frag.bed.gz	cancer	crag_liver	liver	MAL1237	2	G2	59	Male	Never	History of alcoholism, sober for about 1 year prior	2	Cabat2	Cabat2_55	246.7
+MAL1237m	data/raw/crag/liver/MAL1237m.hg19.frag.bed.gz	healthy	crag_liver	liver	MAL1237	NA	NA	59	Male	0	1	2	Cabat2	Cabat2_52	217.3
+MAL1246	data/raw/crag/liver/MAL1246.hg19.frag.bed.gz	cancer	crag_liver	liver	MAL1246	1b	G1	78	Male	Former smoker (not quantified)	No	1	Cabat1	Cabat1_16	364.7
+MAL1246m	data/raw/crag/liver/MAL1246m.hg19.frag.bed.gz	healthy	crag_liver	liver	MAL1246	NA	NA	78	Male	1	0	1	Cabat1	Cabat1_25	106.4
+MAL1323	data/raw/crag/liver/MAL1323.hg19.frag.bed.gz	cancer	crag_liver	liver	MAL1323	1b	G1	25	Female	Never	Scant	2	Cabat2	Cabat2_39	109.5
+MAL1323m	data/raw/crag/liver/MAL1323m.hg19.frag.bed.gz	healthy	crag_liver	liver	MAL1323	NA	NA	25	Female	0	1	2	Cabat2	Cabat2_16	295.5

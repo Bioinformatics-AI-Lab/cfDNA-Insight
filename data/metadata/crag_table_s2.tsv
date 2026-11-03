@@ -1,0 +1,67 @@
+sample_id	pair_id	label	cancer_type	stage	grade	age	gender	smoking	alcohol	biomarkers	lib_batch	seq_batch	seq_id
+MAL0638	MAL0638	cancer	breast	Stage IA	G1	54	Female	Yes. 1 pack / day for 34 years	Yes. 3 drinks/week	ER+,PR+,HER2-	3	Cabat3	Cabat3_5
+MAL0638m	MAL0638	healthy	breast	NA	NA	54	Female	2	1	NA	3	Cabat3	Cabat3_22
+MAL0642	MAL0642	cancer	breast	Stage IA	G1	55	Female	Former. 0.5 pack per day for 7 years. Quit smoking about 23 years prior	Yes. 1/2 glass red wine daily	ER+,PR+,HER2-	3	Cabat3	Cabat3_6
+MAL0642m	MAL0642	healthy	breast	NA	NA	55	Female	1	1	NA	3	Cabat3	Cabat3_47
+MAL0665	MAL0665	cancer	breast	Stage IIIA	G3	54	Female	Former. 0.5 pack per day for 20 years. Quit about 11 years prior	No	ER+,PR+,HER2+	2	Cabat2	Cabat2_4
+MAL0665m	MAL0665	healthy	breast	NA	NA	54	Female	1	0	NA	2	Cabat2	Cabat2_43
+MAL0681	MAL0681	cancer	breast	Stage IIA	G2	45	Female	Former smoker. Not quantified	No	ER+,PR+,HER2-	2	Cabat2	Cabat2_48
+MAL0681m	MAL0681	healthy	breast	NA	NA	45	Female	1	0	NA	2	Cabat2	Cabat2_54
+MAL0711	MAL0711	cancer	breast	Stage IIA	G2	67	Female	Former. Quit about 35 years prior	Yes, occasionally	ER+,PR+,HER2-	2	Cabat2	Cabat2_7
+MAL0711m	MAL0711	healthy	breast	NA	NA	67	Female	1	1	NA	2	Cabat2	Cabat2_40
+MAL0718	MAL0718	cancer	breast	Stage IA	G3	30	Female	Never	No / socially	ER-,PR-,HER2-	1	Cabat1	Cabat1_30
+MAL0718m	MAL0718	healthy	breast	NA	NA	30	Female	0	0	NA	1	Cabat1	Cabat1_27
+MAL0719	MAL0719	cancer	breast	Stage IIA	G1	64	Female	Never	No	ER+,PR+,HER2-	5	Cabat5	Cabat5_53
+MAL0719m	MAL0719	healthy	breast	NA	NA	64	Female	0	0	NA	5	Cabat5	Cabat5_13
+MAL0728	MAL0728	cancer	breast	Stage IIA	G2	57	Female	Former	No	ER+,PR+,HER2-	1	Cabat1	Cabat1_39
+MAL0728m	MAL0728	healthy	breast	NA	NA	57	Female	1	0	NA	1	Cabat1	Cabat1_40
+MAL0730	MAL0730	cancer	breast	Stage IIA	G2	71	Female	Yes. 0.25 pack per day	Yes, occasionally	ER-,PR+,HER2-	2	Cabat2	Cabat2_50
+MAL0730m	MAL0730	healthy	breast	NA	NA	71	Female	2	1	NA	2	Cabat2	Cabat2_41
+MAL0760	MAL0760	cancer	breast	Stage IA	G1	60	Female	Former. Quit about 6 years prior	No	ER+,PR+,HER2-	4	Cabat4	Cabat4_50
+MAL0760m	MAL0760	healthy	breast	NA	NA	60	Female	1	0	NA	4	Cabat4	Cabat4_38
+MAL0766	MAL0766	cancer	breast	Stage IA	G1	52	Female	Never	Yes, 1-2 mixed drinks/month	ER+,PR+,HER2-	4	Cabat4	Cabat4_12
+MAL0766m	MAL0766	healthy	breast	NA	NA	52	Female	0	1	NA	4	Cabat4	Cabat4_21
+MAL0769	MAL0769	cancer	breast	Stage IA	G2	61	Female	Never	No	ER-,PR-,HER2-	3	Cabat3	Cabat3_26
+MAL0769m	MAL0769	healthy	breast	NA	NA	61	Female	0	0	NA	3	Cabat3	Cabat3_27
+MAL0779	MAL0779	cancer	breast	Stage IB	G2	48	Female	Former. 1 pack per day for 11 years. Quit 2 months prior	No	ER+,PR+,HER2+	4	Cabat4	Cabat4_51
+MAL0779m	MAL0779	healthy	breast	NA	NA	48	Female	1	0	NA	4	Cabat4	Cabat4_58
+MAL0801	MAL0801	cancer	breast	Stage IA	G2	50	Female	Never	Yes	ER+, PR+,HER2-	1	Cabat1	Cabat1_6
+MAL0801m	MAL0801	healthy	breast	NA	NA	50	Female	0	1	NA	1	Cabat1	Cabat1_28
+MAL0809	MAL0809	cancer	breast	Stage IA	-	50	Female	Yes. 1 pack per day	Yes	ER+, PR-,HER2+	3	Cabat3	Cabat3_7
+MAL0809m	MAL0809	healthy	breast	NA	NA	50	Female	2	1	NA	3	Cabat3	Cabat3_45
+MAL0842	MAL0842	cancer	breast	Stage IA	G2	61	Female	Never	Yes, socially	ER+,PR+,HER2-	5	Cabat5	Cabat5_54
+MAL0842m	MAL0842	healthy	breast	NA	NA	61	Female	0	1	NA	5	Cabat5	Cabat5_24
+MAL0851	MAL0851	cancer	breast	Stage IIB	G1	54	Female	Never	Yes, 1-3 glasses/month	ER+,PR+,HER2-	4	Cabat4	Cabat4_22
+MAL0851m	MAL0851	healthy	breast	NA	NA	54	Female	0	1	NA	4	Cabat4	Cabat4_41
+MAL0866	MAL0866	cancer	breast	Stage IIA	G2	70	Female	Never	Yes, rarely a glass of wine	ER+,PR+,HER2-	1	Cabat1	Cabat1_9
+MAL0866m	MAL0866	healthy	breast	NA	NA	70	Female	0	1	NA	1	Cabat1	Cabat1_46
+MAL0883	MAL0883	cancer	breast	Stage IIA	G3	47	Female	Never	Yes, occasionally	ER-,PR-,HER2-	5	Cabat5	Cabat5_39
+MAL0883m	MAL0883	healthy	breast	NA	NA	47	Female	0	1	NA	5	Cabat5	Cabat5_1
+MAL0887	MAL0887	cancer	breast	Stage IIA	G2	74	Female	Former. Quit about 12 years prior	Yes. 2 glasses wine per night	ER+, PR+,HER2-	5	Cabat5	Cabat5_43
+MAL0887m	MAL0887	healthy	breast	NA	NA	74	Female	1	1	NA	5	Cabat5	Cabat5_36
+MAL0889	MAL0889	cancer	breast	Stage IIA	G3	51	Female	Never	No	ER-, PR-,HER2-	1	Cabat1	Cabat1_1
+MAL0889m	MAL0889	healthy	breast	NA	NA	51	Female	0	0	NA	1	Cabat1	Cabat1_48
+MAL1002	MAL1002	cancer	breast	Stage IIIA	G2	72	Female	Never	No	ER+,PR+,HER2-	2	Cabat2	Cabat2_20
+MAL1002m	MAL1002	healthy	breast	NA	NA	72	Female	0	0	NA	2	Cabat2	Cabat2_53
+MAL1149	MAL1149	cancer	breast	Stage IIIA	G2	49	Female	Yes. 0.5 pack per day for 32 years	Yes, 3 drinks per week	ER+,PR+,HER2-	1	Cabat1	Cabat1_50
+MAL1149m	MAL1149	healthy	breast	NA	NA	49	Female	2	1	NA	1	Cabat1	Cabat1_14
+MAL1164	MAL1164	cancer	breast	Stage IIIA	G2	55	Female	Never	No	ER+,PR+,HER2-	2	Cabat2	Cabat2_28
+MAL1164m	MAL1164	healthy	breast	NA	NA	55	Female	0	0	NA	2	Cabat2	Cabat2_27
+MAL1261	MAL1261	cancer	breast	Stage IIIB	G2	51	Female	Never	No	ER+,PR+,HER2-	2	Cabat2	Cabat2_58
+MAL1261m	MAL1261	healthy	breast	NA	NA	51	Female	0	0	NA	2	Cabat2	Cabat2_30
+MAL0646	MAL0646	cancer	liver	1a	G2	66	Female	Yes. 1.5 ppd x 50 years	Yes. 1/2 pint wiskey daily	NA	5	Cabat5	Cabat5_51
+MAL0646m	MAL0646	healthy	liver	NA	NA	66	Female	2	1	NA	5	Cabat5	Cabat5_32
+MAL0714	MAL0714	cancer	liver	2	G2	62	Male	Yes. 40 Pack year history, continues to smoke 1 cig daily	"none since diagnosed with liver disease"	NA	3	Cabat3	Cabat3_44
+MAL0714m	MAL0714	healthy	liver	NA	NA	62	Male	2	1	NA	3	Cabat3	Cabat3_32
+MAL0944	MAL0944	cancer	liver	2	G2	64	Male	Yes. 1.5 PPD	No	NA	3	Cabat3	Cabat3_49
+MAL0944m	MAL0944	healthy	liver	NA	NA	64	Male	2	0	NA	3	Cabat3	Cabat3_50
+MAL0945	MAL0945	cancer	liver	1a	G1	56	Female	Former smoker (not quantified)	History of alcohol abuse (not quantified), quit for 1.5 months at time of sample obtainment	NA	1	Cabat1	Cabat1_43
+MAL0945m	MAL0945	healthy	liver	NA	NA	56	Female	1	1	NA	1	Cabat1	Cabat1_26
+MAL1205	MAL1205	cancer	liver	1b	G1	77	Male	Never	Yes, Once a month	NA	1	Cabat1	Cabat1_5
+MAL1205m	MAL1205	healthy	liver	NA	NA	77	Male	0	1	NA	1	Cabat1	Cabat1_33
+MAL1237	MAL1237	cancer	liver	2	G2	59	Male	Never	History of alcoholism, sober for about 1 year prior	NA	2	Cabat2	Cabat2_55
+MAL1237m	MAL1237	healthy	liver	NA	NA	59	Male	0	1	NA	2	Cabat2	Cabat2_52
+MAL1246	MAL1246	cancer	liver	1b	G1	78	Male	Former smoker (not quantified)	No	NA	1	Cabat1	Cabat1_16
+MAL1246m	MAL1246	healthy	liver	NA	NA	78	Male	1	0	NA	1	Cabat1	Cabat1_25
+MAL1323	MAL1323	cancer	liver	1b	G1	25	Female	Never	Scant	NA	2	Cabat2	Cabat2_39
+MAL1323m	MAL1323	healthy	liver	NA	NA	25	Female	0	1	NA	2	Cabat2	Cabat2_16

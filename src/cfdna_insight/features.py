@@ -94,6 +94,7 @@ def extract_sample_features(
     blocks["_window_arms"] = pd.Series(cov["arm"].to_numpy(),
                                        index=cov["bin_id"].to_numpy())
     blocks["technical"] = cnv.technical_covariates(frags, binned)
+    blocks["aneuploidy"] = cnv.aneuploidy_covariates(frags, binned)
 
     if fasta_path:
         import pysam
@@ -133,4 +134,30 @@ def load_features(outdir: str) -> dict[str, pd.DataFrame]:
         if fn.endswith(".parquet"):
             blocks[fn[: -len(".parquet")]] = pd.read_parquet(
                 os.path.join(outdir, fn))
+    return blocks
+
+
+# Feature directories written before the technical/aneuploidy split carry
+# chromosome entropy and coverage dispersion inside the technical block, where
+# they corrupt the negative control. This moves them without re-extracting.
+LEGACY_ANEUPLOIDY = {"tech_chr_entropy": "an_chr_entropy",
+                     "tech_coverage_cv": "an_coverage_cv"}
+
+
+def split_legacy_technical(blocks: dict[str, pd.DataFrame]
+                           ) -> dict[str, pd.DataFrame]:
+    tech = blocks.get("technical")
+    if tech is None:
+        return blocks
+    present = [c for c in LEGACY_ANEUPLOIDY if c in tech.columns]
+    if not present:
+        return blocks
+    moved = tech[present].rename(columns=LEGACY_ANEUPLOIDY)
+    blocks = dict(blocks)
+    blocks["technical"] = tech.drop(columns=present)
+    blocks["aneuploidy"] = (
+        pd.concat([blocks["aneuploidy"], moved], axis=1)
+        if "aneuploidy" in blocks else moved)
+    print(f"[info] moved {present} from technical -> aneuploidy "
+          f"(they are copy-number readouts, not library metrics)")
     return blocks

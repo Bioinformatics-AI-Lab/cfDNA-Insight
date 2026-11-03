@@ -212,19 +212,41 @@ def permutation_null(X: pd.DataFrame, y: np.ndarray, n_perm: int = 200,
 
 def assemble_matrix(blocks: dict[str, pd.DataFrame],
                     use: list[str],
-                    sample_order: list[str]) -> pd.DataFrame:
-    """Concatenate selected blocks, aligned on sample id."""
+                    sample_order: list[str],
+                    min_frac_present: float = 0.8) -> pd.DataFrame:
+    """Concatenate selected blocks, aligned on sample id.
+
+    Two kinds of column are dropped:
+
+      - constant ones, which carry no information;
+      - sparsely observed ones, present in fewer than `min_frac_present` of
+        samples.
+
+    The second matters more than it looks. `build_cnv_block` takes the union
+    of chromosome arms across samples, so an arm summarised for only a
+    handful of them becomes a column that is entirely missing inside any CV
+    fold where none of those samples land in training. The imputer then has
+    nothing to impute from, warns, and silently drops the column in some
+    folds but not others — which makes the feature set quietly
+    fold-dependent. Dropping them up front keeps every fold working from the
+    same columns.
+    """
     parts = []
     for name in use:
         if name not in blocks:
             continue
-        df = blocks[name].reindex(sample_order)
-        parts.append(df)
+        parts.append(blocks[name].reindex(sample_order))
     if not parts:
         raise ValueError(f"none of {use} present in blocks {list(blocks)}")
     X = pd.concat(parts, axis=1)
-    # drop features that are constant or entirely missing
-    keep = X.columns[(X.nunique(dropna=True) > 1)]
+
+    informative = X.nunique(dropna=True) > 1
+    present = X.notna().mean(axis=0) >= min_frac_present
+    keep = X.columns[informative & present]
+    if len(keep) == 0:
+        raise ValueError(
+            f"no usable features from {use}: {int((~informative).sum())} "
+            f"constant, {int((~present).sum())} too sparsely observed")
     return X[keep]
 
 
@@ -239,8 +261,10 @@ def ablation(blocks: dict[str, pd.DataFrame], y: np.ndarray,
         "size histogram only": ["size_hist"],
         "DELFI profile only": ["delfi"],
         "CNV arms only": ["cnv"],
+        "aneuploidy proxies only": ["aneuploidy"],
         "end motifs only": ["motif"],
-        "all biological": ["size_summary", "size_hist", "delfi", "cnv", "motif"],
+        "all biological": ["size_summary", "size_hist", "delfi", "cnv",
+                           "motif", "aneuploidy"],
         "TECHNICAL ONLY (negative control)": ["technical"],
     }
     rows = []
@@ -312,3 +336,99 @@ def coefficient_report(model: Pipeline, feature_names: list[str],
     df = pd.DataFrame({"feature": feature_names, "coef": coefs})
     df["abs_coef"] = df["coef"].abs()
     return df.sort_values("abs_coef", ascending=False).head(top_n)
+
+
+# --------------------------------------------------------------------------
+# Fold-safe CNV evaluation
+# --------------------------------------------------------------------------
+
+def make_foldsafe_cnv_pipeline(window_arms, n_coverage_cols: int,
+                               estimator: str = "logistic"):
+    """Pipeline that rebuilds the healthy CNV reference inside every fold.
+
+    The first `n_coverage_cols` columns of X are raw per-window coverage and
+    go through `HealthyReferenceTransformer`; anything after them is already a
+    finished feature and passes through untouched. That split lets the
+    combined model stay fold-safe without precomputing CNV features from the
+    whole cohort.
+    """
+    from sklearn.compose import ColumnTransformer
+
+    from .cnv import HealthyReferenceTransformer
+
+    cov_idx = list(range(n_coverage_cols))
+    rest_idx = None  # filled per-call below
+
+    def build(total_cols: int):
+        rest = list(range(n_coverage_cols, total_cols))
+        steps = [("cnv", HealthyReferenceTransformer(window_arms), cov_idx)]
+        if rest:
+            steps.append(("passthrough", "passthrough", rest))
+        pre = ColumnTransformer(steps, remainder="drop")
+        pipe, grid = make_estimator(estimator)
+        full = Pipeline([("pre", pre)] + list(pipe.steps))
+        return full, grid
+
+    return build
+
+
+def nested_cv_foldsafe_cnv(
+    coverage: pd.DataFrame,
+    window_arms,
+    y: np.ndarray,
+    other: pd.DataFrame | None = None,
+    estimator: str = "logistic",
+    outer_folds: int = 5,
+    inner_folds: int = 4,
+    n_repeats: int = 10,
+    label: str = "",
+    random_state: int = RANDOM_STATE,
+) -> CVResult:
+    """Nested CV with the CNV reference rebuilt per training fold.
+
+    Slower than `nested_cv` on precomputed CNV features, because the reference
+    and every arm summary are recomputed for each fold. That cost is the whole
+    point: the difference between this number and the precomputed one is the
+    size of the leak.
+    """
+    X = coverage if other is None else pd.concat([coverage, other], axis=1)
+    X = X.to_numpy(dtype=float)
+    n_cov = coverage.shape[1]
+    build = make_foldsafe_cnv_pipeline(window_arms, n_cov, estimator)
+
+    aucs, oof_accum = [], np.zeros((n_repeats, len(y)))
+    for rep in range(n_repeats):
+        outer = StratifiedKFold(n_splits=outer_folds, shuffle=True,
+                                random_state=random_state + rep)
+        oof = np.full(len(y), np.nan)
+        for train_idx, test_idx in outer.split(X, y):
+            pipe, grid = build(X.shape[1])
+            inner = StratifiedKFold(n_splits=inner_folds, shuffle=True,
+                                    random_state=random_state + rep)
+            search = GridSearchCV(pipe, grid, scoring="roc_auc", cv=inner,
+                                  n_jobs=1, refit=True)
+            search.fit(X[train_idx], y[train_idx])
+            oof[test_idx] = search.predict_proba(X[test_idx])[:, 1]
+        aucs.append(roc_auc_score(y, oof))
+        oof_accum[rep] = oof
+
+    return CVResult(np.array(aucs), oof_accum.mean(axis=0), y, label=label)
+
+
+def null_pvalue(X: pd.DataFrame, y: np.ndarray, observed: float,
+                n_perm: int = 100, estimator: str = "logistic",
+                random_state: int = RANDOM_STATE) -> tuple[float, float, float]:
+    """One-sided p for an already-computed AUC, plus the null's mean and sd.
+
+    Used to judge the technical-covariate control. A fixed AUC threshold is
+    the wrong test at small n: with 8 per class the null AUC has a standard
+    deviation near 0.15, so 0.75 is unremarkable, while at n=200 the same
+    value would be damning.
+    """
+    rng = np.random.default_rng(random_state)
+    null = np.empty(n_perm)
+    for i in range(n_perm):
+        null[i] = nested_cv(X, rng.permutation(y), estimator=estimator,
+                            n_repeats=1, random_state=random_state + i).auc_mean
+    p = (np.sum(null >= observed) + 1) / (n_perm + 1)
+    return float(p), float(null.mean()), float(null.std())

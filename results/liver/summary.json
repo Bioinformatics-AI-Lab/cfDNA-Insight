@@ -1,0 +1,22 @@
+{
+  "n_samples": 16,
+  "n_cancer": 8,
+  "n_studies": 1,
+  "n_features": 1074,
+  "estimator": "logistic",
+  "auc_mean": 0.73125,
+  "auc_interval": [
+    0.703125,
+    0.765625
+  ],
+  "permutation_p": 0.11764705882352941,
+  "cross_study_auc": null,
+  "per_study_auc": null,
+  "threshold_at_95_specificity": 0.5603534643174112,
+  "sensitivity_at_95_specificity": 0.5,
+  "technical_control_auc": 0.753125,
+  "technical_control_p": 0.0967741935483871,
+  "cnv_only_leaky": 0.9625,
+  "cnv_only_foldsafe": 0.7864583333333334,
+  "cnv_leak_delta": 0.17604166666666665
+}

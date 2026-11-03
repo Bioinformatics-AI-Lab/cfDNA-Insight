@@ -1,0 +1,92 @@
+{
+  "n_samples": 66,
+  "n_cancer": 33,
+  "univariate": [
+    {
+      "covariate": "tech_n_fragments",
+      "auc": 0.426078971533517,
+      "p": 0.3049117307785151,
+      "cancer_median": 23313237.0,
+      "healthy_median": 25970437.0
+    },
+    {
+      "covariate": "tech_log10_n_fragments",
+      "auc": 0.426078971533517,
+      "p": 0.3049117307785151,
+      "cancer_median": 7.367602578695877,
+      "healthy_median": 7.414479257488056
+    },
+    {
+      "covariate": "tech_frac_bins_zero",
+      "auc": 0.5303030303030303,
+      "p": 0.6757697766862383,
+      "cancer_median": 0.06312280823582514,
+      "healthy_median": 0.06312280823582514
+    }
+  ],
+  "paired": [
+    {
+      "covariate": "tech_n_fragments",
+      "n_pairs": 33,
+      "frac_cancer_higher": 0.48484848484848486,
+      "p": 0.33921037591062486
+    },
+    {
+      "covariate": "tech_log10_n_fragments",
+      "n_pairs": 33,
+      "frac_cancer_higher": 0.48484848484848486,
+      "p": 0.5021234466694295
+    },
+    {
+      "covariate": "tech_frac_bins_zero",
+      "n_pairs": 33,
+      "frac_cancer_higher": 0.42424242424242425,
+      "p": 0.8129537367456132
+    }
+  ],
+  "adjusted": [
+    {
+      "block": "size_summary",
+      "n_features": 10,
+      "auc": 0.4892561983471075,
+      "auc_minus_depth": 0.5796143250688706,
+      "auc_minus_aneuploidy": 0.7127640036730944
+    },
+    {
+      "block": "size_hist",
+      "n_features": 351,
+      "auc": 0.4420569329660239,
+      "auc_minus_depth": 0.5131313131313131,
+      "auc_minus_aneuploidy": 0.7649219467401286
+    },
+    {
+      "block": "delfi",
+      "n_features": 530,
+      "auc": 0.6271808999081726,
+      "auc_minus_depth": 0.6292011019283746,
+      "auc_minus_aneuploidy": 0.4262626262626263
+    },
+    {
+      "block": "motif",
+      "n_features": 256,
+      "auc": 0.8938475665748392,
+      "auc_minus_depth": 0.880257116620753,
+      "auc_minus_aneuploidy": 0.592653810835629
+    },
+    {
+      "block": "aneuploidy",
+      "n_features": 2,
+      "auc": 0.8552800734618916,
+      "auc_minus_depth": 0.8448117539026632
+    },
+    {
+      "block": "technical",
+      "n_features": 3,
+      "auc": 0.5068870523415978,
+      "auc_minus_depth": 0.4887052341597797,
+      "auc_minus_aneuploidy": 0.6058769513314968
+    }
+  ],
+  "motif_independent_of_aneuploidy": false,
+  "induced_association_aneuploidy": true
+}

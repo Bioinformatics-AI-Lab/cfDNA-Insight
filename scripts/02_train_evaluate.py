@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from cfdna_insight import modeling, plots  # noqa: E402
 from cfdna_insight.cnv import HealthyReference, arm_summary  # noqa: E402
-from cfdna_insight.features import load_features  # noqa: E402
+from cfdna_insight.features import load_features, split_legacy_technical  # noqa: E402
 
 
 def build_cnv_block(coverage: pd.DataFrame, window_arms: pd.DataFrame,
@@ -52,6 +52,10 @@ def main() -> int:
     ap.add_argument("--n-repeats", type=int, default=10)
     ap.add_argument("--n-perm", type=int, default=200)
     ap.add_argument("--skip-permutation", action="store_true")
+    ap.add_argument("--cnv-fold-safe", action="store_true",
+                    help="Also rebuild the CNV healthy reference inside each "
+                         "CV fold and report it next to the precomputed "
+                         "number. Slower; the gap between them is the leak.")
     args = ap.parse_args()
 
     tabdir = os.path.join(args.outdir, "tables")
@@ -59,7 +63,7 @@ def main() -> int:
     os.makedirs(tabdir, exist_ok=True)
     os.makedirs(figdir, exist_ok=True)
 
-    blocks = load_features(args.features)
+    blocks = split_legacy_technical(load_features(args.features))
     samples = pd.read_csv(os.path.join(args.features, "samples_used.tsv"),
                           sep="\t")
     order = [s for s in samples["sample_id"]
@@ -86,16 +90,33 @@ def main() -> int:
           .to_string(index=False))
     plots.plot_ablation(abl, os.path.join(figdir, "ablation_auc.png"))
 
+    # The technical control is judged against its own permutation null, not a
+    # fixed AUC. At 8 per class the null AUC has sd near 0.15, so 0.75 means
+    # nothing; at n=200 it would be damning. A constant threshold gets this
+    # backwards at both ends.
     tech = abl[abl["label"].str.contains("TECHNICAL")]
-    if len(tech) and tech["auc_mean"].iloc[0] > 0.65:
-        print(f"\n[WARNING] technical-covariate model reaches AUC "
-              f"{tech['auc_mean'].iloc[0]:.3f}. Library characteristics alone "
-              f"separate the groups; the biological AUC is confounded and "
-              f"must be reported with that caveat.\n")
+    tech_p = None
+    if len(tech) and "technical" in blocks:
+        obs = float(tech["auc_mean"].iloc[0])
+        Xt = modeling.assemble_matrix(blocks, ["technical"], order)
+        n_perm_tech = max(30, args.n_perm // 4)
+        print(f"[run] technical-control null ({n_perm_tech} permutations)")
+        tech_p, null_mu, null_sd = modeling.null_pvalue(
+            Xt, y, obs, n_perm=n_perm_tech, estimator=args.estimator)
+        print(f"       technical AUC {obs:.3f}; null {null_mu:.3f} "
+              f"+/- {null_sd:.3f}; p = {tech_p:.3g}")
+        if tech_p < 0.05:
+            print(f"\n[WARNING] the technical-covariate model beats its own "
+                  f"null (p={tech_p:.3g}). Library characteristics alone "
+                  f"separate the groups; the biological AUC is confounded "
+                  f"and must be reported with that caveat.\n")
+        else:
+            print(f"       not distinguishable from chance at this n -- no "
+                  f"evidence of depth/coverage confounding\n")
 
     # ------------------------------------------------------------- main model
-    bio = [b for b in ("size_summary", "size_hist", "delfi", "cnv", "motif")
-           if b in blocks]
+    bio = [b for b in ("size_summary", "size_hist", "delfi", "cnv", "motif",
+                       "aneuploidy") if b in blocks]
     X = modeling.assemble_matrix(blocks, bio, order)
     print(f"[run] full model: {X.shape[1]} features")
     main_res = modeling.nested_cv(X, y, estimator=args.estimator,
@@ -123,6 +144,32 @@ def main() -> int:
     else:
         print("[info] single study; cross-study generalisation UNTESTED. "
               "Any AUC below is within-cohort only.")
+
+    # ------------------------------------------------------ fold-safe CNV
+    foldsafe = {}
+    if args.cnv_fold_safe and "coverage" in blocks and "cnv" in blocks:
+        print("[run] fold-safe CNV (reference rebuilt per training fold)")
+        cov = blocks["coverage"].reindex(order)
+        arms = blocks["window_arms"].reindex(order).iloc[0]
+        try:
+            fs_cnv = modeling.nested_cv_foldsafe_cnv(
+                cov, arms, y, estimator=args.estimator,
+                n_repeats=max(3, args.n_repeats // 2),
+                label="CNV arms only (fold-safe)")
+            leaky = float(abl.loc[abl["label"] == "CNV arms only",
+                                  "auc_mean"].iloc[0])
+            foldsafe["cnv_only_leaky"] = leaky
+            foldsafe["cnv_only_foldsafe"] = fs_cnv.auc_mean
+            foldsafe["cnv_leak_delta"] = leaky - fs_cnv.auc_mean
+            print(f"       CNV precomputed reference: {leaky:.3f}")
+            print(f"       CNV fold-safe reference:   {fs_cnv.auc_mean:.3f}")
+            print(f"       leak: {leaky - fs_cnv.auc_mean:+.3f}")
+            if leaky - fs_cnv.auc_mean > 0.1:
+                print(f"\n[WARNING] the precomputed CNV reference inflates "
+                      f"AUC by {leaky - fs_cnv.auc_mean:.3f}. Report the "
+                      f"fold-safe number.\n")
+        except ValueError as exc:
+            print(f"       skipped: {exc}")
 
     # ---------------------------------------------------------- permutation
     perm_p = None
@@ -170,6 +217,8 @@ def main() -> int:
         "sensitivity_at_95_specificity": sens,
         "technical_control_auc": float(tech["auc_mean"].iloc[0])
         if len(tech) else None,
+        "technical_control_p": tech_p,
+        **foldsafe,
     }
     with open(os.path.join(args.outdir, "summary.json"), "w") as fh:
         json.dump(summary, fh, indent=2)
