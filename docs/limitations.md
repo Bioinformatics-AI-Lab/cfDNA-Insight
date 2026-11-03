@@ -3,6 +3,44 @@
 Stated here rather than at the end of a results section, because they determine
 what this project can and cannot be claimed to show.
 
+## Limitations specific to the result obtained
+
+**The headline signal is aneuploidy, and aneuploidy is stage-dependent.** The
+cohort is heavily early-stage (9 Stage IA, 9 Stage IIA of 25 breast). That the
+signal is detectable here is notable, but per-stage breakdown at n=25 breast
+would be uninterpretable, so none is reported. Whether detection degrades at
+Stage I specifically cannot be answered with these data.
+
+**The fragment-size null is a null on this cohort, not a refutation.** DELFI
+returned 0.625 and fragment-size summaries 0.500. Three explanations remain
+open and these data cannot separate them: coverage too low for stable
+per-window short/long ratios at 1-3x; disease too early to shed detectably;
+or the within-sample z-scoring in `delfi_profile` discarding the global size
+shift that carries the signal. The third is a choice this pipeline made (see
+methodology) and could be tested directly by reporting the uncentred profile —
+at the cost of reintroducing the pre-analytical confounding the centring
+removes.
+
+**End motifs cannot be claimed as an independent modality.** They drop from
+0.894 to 0.593 once chromosome entropy is partialled out. Any downstream use
+of the motif block should treat it as a second view of copy number.
+
+**The mediator-adjustment columns are not interpretable in both directions.**
+Partialling out aneuploidy inflates unrelated blocks, including the negative
+control. Only decreases in those columns carry information.
+
+**Two features is a small enough model to be luck.** `an_chr_entropy` and
+`an_coverage_cv` reaching 0.866 on 66 samples is consistent with a real effect
+and also with a fortunate pair of summary statistics. The paired test
+(30 of 33, p = 3e-07) is the stronger evidence; the AUC is the weaker one.
+Replication in an independent cohort is the only thing that settles it, and no
+such cohort was available.
+
+**Leave-one-cancer-type-out is not external validation.** 0.824 overall and
+0.969 breast-to-liver come from one lab, one protocol, five shared batches. It
+tests transfer across tumour biology and nothing else. The breast-held-out
+direction (0.773) trains on 16 samples and should not be quoted on its own.
+
 ## Design
 
 **Retrospective, case-control, small n.** Cohorts assembled from published
@@ -87,6 +125,8 @@ healthy donor do not generalise; running several pairs would give a range.
 | CHIP confounding | Matched buffy coat sequencing |
 | Simulated LOD | Real contrived dilution series with orthogonally measured tumour fraction |
 | Single-study evaluation | Three or more independent cohorts, held out cleanly |
+| Aneuploidy vs fragmentation unresolved | Higher-coverage WGS on the same donors |
+| Two-feature model unreplicated | An independent matched cohort |
 
 None of these are available for a public-data portfolio project. That is the
 reason the evaluation is built the way it is: if the design cannot be fixed, the
