@@ -1,0 +1,23 @@
+{
+  "n_samples": 66,
+  "n_cancer": 33,
+  "n_studies": 2,
+  "n_features": 1193,
+  "estimator": "logistic",
+  "auc_mean": 0.8488521579430671,
+  "auc_interval": [
+    0.81421028466483,
+    0.8945133149678605
+  ],
+  "permutation_p": null,
+  "grouping": "cancer-type",
+  "cross_cancer_type_auc": 0.8236914600550964,
+  "per_cancer_type_auc": {
+    "crag_breast": 0.7727999999999999,
+    "crag_liver": 0.96875
+  },
+  "threshold_at_95_specificity": 0.6187747663873424,
+  "sensitivity_at_95_specificity": 0.696969696969697,
+  "technical_control_auc": 0.5330578512396695,
+  "technical_control_p": 0.37254901960784315
+}

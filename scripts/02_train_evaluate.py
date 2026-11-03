@@ -46,6 +46,18 @@ def build_cnv_block(coverage: pd.DataFrame, window_arms: pd.DataFrame,
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--features", default="results/features")
+    ap.add_argument("--grouping", default="study",
+                    help="What the `study` column holds, for labelling only. "
+                         "Pass 'cancer-type' with a by-cancer-type sheet so "
+                         "the output and summary.json do not claim a "
+                         "cross-study result that was never run.")
+    ap.add_argument("--samples", default=None,
+                    help="Sample sheet to use instead of the features "
+                         "directory's own samples_used.tsv. The point of the "
+                         "override is the `study` column: pass "
+                         "config/samples_by_cancer_type.tsv to run "
+                         "leave-one-cancer-type-out instead of "
+                         "leave-one-study-out.")
     ap.add_argument("--outdir", default="results")
     ap.add_argument("--estimator", default="logistic",
                     choices=["logistic", "gbm"])
@@ -64,8 +76,16 @@ def main() -> int:
     os.makedirs(figdir, exist_ok=True)
 
     blocks = split_legacy_technical(load_features(args.features))
-    samples = pd.read_csv(os.path.join(args.features, "samples_used.tsv"),
-                          sep="\t")
+    sheet_path = args.samples or os.path.join(args.features,
+                                              "samples_used.tsv")
+    samples = pd.read_csv(sheet_path, sep="\t")
+    if args.samples:
+        print(f"[info] sample sheet: {sheet_path}")
+        if args.grouping == "study":
+            print("[warn] --samples given but --grouping left as 'study'. "
+                  "If the sheet groups by something else (cancer type, "
+                  "batch), pass --grouping so the output does not report a "
+                  "cross-study result that was not run.")
     order = [s for s in samples["sample_id"]
              if s in blocks["size_summary"].index]
     samples = samples.set_index("sample_id").loc[order].reset_index()
@@ -133,12 +153,15 @@ def main() -> int:
     # --------------------------------------------------------- cross-study
     cross = None
     if len(np.unique(groups)) >= 2:
-        print("[run] leave-one-study-out")
+        print(f"[run] leave-one-{args.grouping}-out")
         try:
-            cross = modeling.cross_study_cv(X, y, groups,
-                                            estimator=args.estimator)
-            print(f"       held-out-study AUC {cross.auc_mean:.3f}")
-            print(f"       per study: {cross.extra['per_study_auc']}")
+            cross = modeling.cross_study_cv(
+                X, y, groups, estimator=args.estimator,
+                label=f"leave-one-{args.grouping}-out")
+            print(f"       held-out-{args.grouping} AUC "
+                  f"{cross.auc_mean:.3f}")
+            print(f"       per {args.grouping}: "
+                  f"{cross.extra['per_study_auc']}")
         except ValueError as exc:
             print(f"       skipped: {exc}")
     else:
@@ -211,8 +234,11 @@ def main() -> int:
         "auc_mean": main_res.auc_mean,
         "auc_interval": list(main_res.auc_ci),
         "permutation_p": perm_p,
-        "cross_study_auc": cross.auc_mean if cross else None,
-        "per_study_auc": cross.extra["per_study_auc"] if cross else None,
+        "grouping": args.grouping,
+        f"cross_{args.grouping.replace('-', '_')}_auc":
+            cross.auc_mean if cross else None,
+        f"per_{args.grouping.replace('-', '_')}_auc":
+            cross.extra["per_study_auc"] if cross else None,
         "threshold_at_95_specificity": thresh,
         "sensitivity_at_95_specificity": sens,
         "technical_control_auc": float(tech["auc_mean"].iloc[0])
