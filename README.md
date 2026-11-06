@@ -32,11 +32,30 @@ Nested CV, 5 outer x 4 inner folds, 10 repeats, ridge logistic regression.
 
 Full model AUC 0.849, permutation p = 0.005 (200 permutations, which is the floor). Sensitivity 0.70 at 95% specificity. Leave-one-cancer-type-out 0.824; trained on breast and tested on liver, 0.969.
 
+An in silico dilution series puts a limit of detection on the aneuploidy signal: see below.
+
 The band is the spread across CV repartitions, not a sampling confidence interval. The true interval at n=66 is wider.
 
 ### Fragment size
 
 Size summary 0.500, size histogram 0.462, DELFI 0.625. DELFI is unchanged by depth adjustment (0.629), so this is not a coverage artefact.
+
+The per-feature paired test is the clearer statement. Within the 33 matched pairs, every fragment-size feature splits near evenly:
+
+| Feature | Case higher in | p |
+|---|---:|---:|
+| size_median | 14/33 | 0.94 |
+| size_mean | 17/33 | 0.60 |
+| size_iqr | 11/33 | 0.48 |
+| frac_below_150 | 13/33 | 0.48 |
+| frac_below_120 | 15/33 | 0.74 |
+| frac_167_181 | 15/33 | 0.76 |
+| short_long_ratio_global | 15/33 | 0.55 |
+| periodicity_10bp | 13/33 | 0.27 |
+| motif diversity score | 13/33 | 0.37 |
+| **an_chr_entropy** | **30/33** | **3e-07** |
+
+This is not "the classifier failed to find a size signal". No size feature differs between a case and its own matched control.
 
 The DELFI short/long ratio (Cristiano et al. 2019) is the standard feature in this area, and the matching here controls age, sex, smoking, alcohol and batch directly rather than adjusting for them. It still returns nothing.
 
@@ -50,13 +69,74 @@ Possible reasons, which these data cannot distinguish:
 
 `an_chr_entropy` is the normalised Shannon entropy of per-chromosome fragment proportions. It is higher in the case than in the matched control in 30 of 33 pairs (Wilcoxon p = 3e-07). With `an_coverage_cv` it gives AUC 0.866 on two features.
 
-The paired test is the stronger evidence here. Age, sex, smoking, alcohol and batch are all matched within pair, so none of them explain the difference. Neither feature uses a reference panel, so neither can leak across CV folds.
+The paired test is the stronger evidence here, and it is stronger than the AUC: a signed test over 33 matched pairs makes no use of the between-sample variance that a small-n AUC is hostage to. Age, sex, smoking, alcohol and batch are all matched within pair, so none of them explain the difference. Neither feature uses a reference panel, so neither can leak across CV folds.
+
+![chromosome entropy, paired](results/figures/paired_an_chr_entropy.png)
+
+Each line is one matched pair. The group distributions overlap almost completely (medians 0.9646 vs 0.9638); the pairing is what separates them.
 
 ### End motifs
 
 0.894 raw, 0.593 after residualising on chromosome entropy.
 
 4-mers are read off the reference at fragment termini. Arm-level gains and losses redistribute coverage across sequence contexts with different base composition, which shifts the 4-mer spectrum without any change in nuclease activity. Treat the motif block as a second measurement of copy number, not as an additional modality.
+
+## Limit of detection
+
+Synthetic mixtures of one cancer donor's plasma into their own matched
+control's, at known ratios, rescored with a model trained on the other 64
+donors. Donor MAL1246 (liver, stage 1b) into MAL1246m, 5M fragments per
+mixture, 5 replicates per level.
+
+Subsampling to 5M reproduces both features to the sixth decimal against the
+donors at full depth (45M and 12M), so the mixtures are faithful.
+
+| fraction of cancer plasma | 0 | 0.05 | 0.10 | 0.25 | 0.50 | 1.0 |
+|---|---:|---:|---:|---:|---:|---:|
+| chromosome entropy | 0.96377 | 0.96386 | 0.96393 | 0.96425 | 0.96462 | 0.96546 |
+| model score | 0.494 | 0.496 | 0.498 | 0.509 | 0.519 | 0.546 |
+
+Two numbers come out of this, and they say different things.
+
+**Against a population threshold, LOD95 is 1.0**: the mixture is not flagged
+at any dilution. Taken alone that reads as a failure.
+
+**Chromosome entropy is linear in mixing fraction, R² = 0.998**, slope
+1.68e-03 per unit fraction, with a replicate SD of 4.6e-05, about 3% of the
+span. So it is not failing to track tumour content. It tracks it precisely.
+
+What limits it is that this donor's whole case-control difference spans 28% of
+the chromosome-entropy range across the cohort. Person-to-person variation is
+several times the size of a stage-1b tumour's effect, so a threshold set on
+other people's samples is the wrong instrument. Against the same donor's own
+baseline the limit is **0.08 plasma fraction at 3 SD**.
+
+That is the difference between screening a stranger and monitoring a patient,
+and here it is a factor of twelve.
+
+Three caveats, in order of how much they matter.
+
+This is **one donor pair**. The LOD is a single measurement, not a cohort
+estimate, and running the other liver pairs would give a range rather than a
+point.
+
+**Linearity is weaker evidence than it looks.** Mixing two samples that differ
+in any feature produces a linear response in that feature by construction.
+R² = 0.998 says the series resolves the mixture cleanly; it does not
+independently confirm that the feature tracks cancer. The cohort-level paired
+test does that.
+
+The second aneuploidy feature makes the point concrete. `an_coverage_cv` is
+also linear here (R² = 0.996) and gives a lower own-baseline LOD, 0.065, but
+its slope is *negative* for this donor while cases exceed controls in 23 of 33
+pairs cohort-wide. MAL1246 is one of the discordant pairs on that feature, so
+its LOD measures resolution rather than detection, and the README quotes the
+entropy figure only. `03_dilution_lod.py` compares each slope against the
+cohort direction and warns when they disagree.
+
+Finally, replicate spread captures sampling noise in the mixture, not
+extraction, library prep or batch, so 0.08 is optimistic for a real
+longitudinal assay.
 
 ## Validation details
 
@@ -108,13 +188,16 @@ Feature extraction takes about 13 s/sample, so 15 minutes for all 66.
 ## Layout
 
 ```
+notebooks/           01 cohort and QC, 02 fragmentomics, 03 modelling
+                     (committed with outputs, so they render on GitHub)
 src/cfdna_insight/   io, bins, fragmentomics, cnv, features, modeling,
                      dilution, plots, simulate
 scripts/             00 smoke/fetch/metadata/samplesheet/pairing,
                      01 features, 02 evaluate, 03 dilution, 04 audit
 config/              config.yaml, samples.tsv, samples_by_cancer_type.tsv
-tests/               51 tests, simulated data only, no downloads
-docs/                methodology, biological background, limitations
+tests/               64 tests, simulated data only, no downloads
+docs/                project notes, methodology, biological background,
+                     limitations
 results/             summary.json, confounder_audit.json, figures, tables
 ```
 

@@ -17,12 +17,18 @@ pair.
 
 WHAT IT CHECKS
 
-1. Which covariate carries the signal, by univariate AUC.
+1. Which single feature carries the signal, by univariate AUC. Covers the
+   technical block (the negative control) plus the two small biological
+   blocks, `aneuploidy` and `size_summary`, which are scalar enough that a
+   per-feature test means something.
 
 2. Whether it holds within matched pairs. Each case has one control matched on
    age, sex, smoking and alcohol and run in the same batch, so a paired test
    removes everything the matching controlled for. A difference that survives
-   is a property of the sample, not of cohort assembly.
+   is a property of the sample, not of cohort assembly. This is the primary
+   evidence for the aneuploidy result, and it is stronger than the AUC: a
+   signed test over 33 matched pairs makes no use of the cross-sample
+   variance that a small-n AUC is hostage to.
 
 3. Whether the biological blocks are just reading something else. Each
    block's cross-validated AUC is recomputed after regressing out, in turn,
@@ -111,13 +117,23 @@ def main() -> int:
 
     report: dict = {"n_samples": len(order), "n_cancer": int(y.sum())}
 
+    # Scalar blocks worth testing one feature at a time. The technical block
+    # is the negative control; the others are small enough that a univariate
+    # and paired test on each feature is meaningful rather than a fishing
+    # expedition.
+    scalar = {"technical": tech}
+    for b in ("aneuploidy", "size_summary"):
+        if b in blocks:
+            scalar[b] = blocks[b].reindex(order)
+    flat = pd.concat(scalar.values(), axis=1)
+
     # -------------------------------------------------- 1. which covariate
     print("=" * 70)
-    print("1. UNIVARIATE SEPARATION BY TECHNICAL COVARIATE")
+    print("1. UNIVARIATE SEPARATION, SCALAR FEATURES")
     print("=" * 70)
     uni = []
-    for c in tech.columns:
-        v = tech[c].to_numpy(dtype=float)
+    for c in flat.columns:
+        v = flat[c].to_numpy(dtype=float)
         finite = v[np.isfinite(v)]
         if len(np.unique(finite)) < 2:
             print(f"  {c:30s} constant — dropped before modelling")
@@ -139,8 +155,8 @@ def main() -> int:
     print("=" * 70)
     paired = []
     if "pair_id" in samples.columns:
-        d = tech.join(samples.set_index("sample_id")[["pair_id", "label"]])
-        for c in tech.columns:
+        d = flat.join(samples.set_index("sample_id")[["pair_id", "label"]])
+        for c in flat.columns:
             piv = d.pivot_table(index="pair_id", columns="label",
                                 values=c).dropna()
             if piv.empty or "cancer" not in piv or "healthy" not in piv:
@@ -152,13 +168,36 @@ def main() -> int:
                 _, p = wilcoxon(piv["cancer"], piv["healthy"])
             except ValueError:
                 continue
-            frac = float((diff > 0).mean())
+            n_higher = int((diff > 0).sum())
+            frac = n_higher / len(piv)
             paired.append({"covariate": c, "n_pairs": int(len(piv)),
+                           "n_cancer_higher": n_higher,
                            "frac_cancer_higher": frac, "p": float(p)})
             flag = "  <-- holds within pair" if p < 0.05 else ""
-            print(f"  {c:30s} cancer>control in {frac:5.0%} of "
-                  f"{len(piv):2d} pairs  p={p:.4g}{flag}")
+            print(f"  {c:30s} cancer>control in {n_higher:2d}/{len(piv):2d} "
+                  f"pairs ({frac:4.0%})  p={p:.4g}{flag}")
     report["paired"] = paired
+
+    # The paired plot for whichever feature separates best. For a matched
+    # design this is the figure that represents the evidence; a boxplot of the
+    # two groups would show the between-pair spread that matching removed.
+    sig = [r for r in paired if r["p"] < 0.01]
+    if sig and "pair_id" in samples.columns:
+        best = min(sig, key=lambda r: r["p"])
+        figdir = os.path.join(args.outdir, "figures")
+        os.makedirs(figdir, exist_ok=True)
+        try:
+            from cfdna_insight.plots import plot_paired_feature
+            idx = samples.set_index("sample_id")
+            path = plot_paired_feature(
+                flat[best["covariate"]], idx.loc[flat.index, "pair_id"],
+                idx.loc[flat.index, "label"],
+                os.path.join(figdir, f"paired_{best['covariate']}.png"),
+                feature_name=best["covariate"])
+            report["paired_figure"] = path
+            print(f"\n  [fig] {path}")
+        except Exception as exc:  # noqa: BLE001
+            print(f"  [warn] paired plot skipped: {exc}")
 
     # ------------------------------------- 3. biology after removing depth
     print()

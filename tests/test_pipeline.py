@@ -518,3 +518,141 @@ def test_split_legacy_technical_is_noop_when_already_split():
                                         index=["s1"])}
     out = split_legacy_technical(blocks)
     assert "aneuploidy" not in out
+
+
+# ------------------------------------------------------ dilution: mixtures
+
+def test_mixture_features_include_reference_free_aneuploidy(healthy_file):
+    from cfdna_insight.dilution import mixture_features
+    frags = read_fragments(healthy_file)
+    feats = mixture_features(frags)
+    assert "an_chr_entropy" in feats.index
+    assert "an_coverage_cv" in feats.index
+    assert np.isfinite(feats["an_chr_entropy"])
+    # nothing needing a healthy reference panel may appear here
+    assert not any(str(i).startswith("cnv_") for i in feats.index)
+
+
+def test_mixture_features_match_extraction_path(healthy_file):
+    """A mixture of one sample with itself must reproduce that sample."""
+    from cfdna_insight.dilution import mixture_features
+    frags = read_fragments(healthy_file)
+    binned = fx.bin_short_long(frags)
+    direct = cnv.aneuploidy_covariates(frags, binned)
+    viamix = mixture_features(frags)
+    assert np.isclose(direct["an_chr_entropy"], viamix["an_chr_entropy"])
+
+
+def test_dilution_series_monotone_in_aneuploidy(tmp_path):
+    """Entropy of the mixture should move toward the cancer donor's value."""
+    from cfdna_insight.dilution import mix_fragments
+    from cfdna_insight.simulate import simulate_sample
+    h = read_fragments(simulate_sample(str(tmp_path / "h.frag.gz"),
+                                       n_fragments=60_000, is_cancer=False,
+                                       seed=11))
+    c = read_fragments(simulate_sample(str(tmp_path / "c.frag.gz"),
+                                       n_fragments=60_000, is_cancer=True,
+                                       effect_size=2.0, seed=12))
+    rng = np.random.default_rng(0)
+    ents = []
+    for f in (0.0, 0.5, 1.0):
+        m = mix_fragments(c, h, f, 40_000, rng)
+        b = fx.bin_short_long(m)
+        ents.append(cnv.aneuploidy_covariates(m, b)["an_chr_entropy"])
+    # simulate_sample skews chromosome weights for cancer, so entropy falls
+    assert ents[0] != ents[2]
+    assert min(ents[0], ents[2]) <= ents[1] <= max(ents[0], ents[2])
+
+
+def test_paired_plot_writes_file(tmp_path):
+    from cfdna_insight.plots import plot_paired_feature
+    n = 12
+    pairs = [f"p{i}" for i in range(n)] * 2
+    labels = ["healthy"] * n + ["cancer"] * n
+    rng = np.random.default_rng(0)
+    base = rng.normal(0.96, 0.002, n)
+    vals = np.r_[base, base + rng.normal(0.0008, 0.0004, n)]
+    out = plot_paired_feature(
+        pd.Series(vals), pd.Series(pairs), pd.Series(labels),
+        str(tmp_path / "paired.png"), feature_name="an_chr_entropy")
+    assert os.path.exists(out) and os.path.getsize(out) > 5000
+
+
+def test_paired_plot_requires_both_labels(tmp_path):
+    from cfdna_insight.plots import plot_paired_feature
+    with pytest.raises(ValueError, match="both cancer and healthy"):
+        plot_paired_feature(
+            pd.Series([1.0, 2.0]), pd.Series(["p1", "p2"]),
+            pd.Series(["cancer", "cancer"]), str(tmp_path / "x.png"))
+
+
+# ----------------------------------------------------------- dose response
+
+def _synthetic_series(slope=0.0017, noise=4.6e-05, seed=0):
+    rng = np.random.default_rng(seed)
+    fr = [0.0, 0.01, 0.05, 0.1, 0.25, 0.5, 1.0]
+    rows = []
+    for f in fr:
+        for rep in range(5):
+            rows.append({"fraction": f, "replicate": rep,
+                         "an_chr_entropy": 0.9638 + slope * f
+                                           + rng.normal(0, noise),
+                         "score": 0.5 + 0.05 * f})
+    return pd.DataFrame(rows)
+
+
+def test_dose_response_recovers_slope_and_linearity():
+    from cfdna_insight.dilution import dose_response
+    d = dose_response(_synthetic_series(), "an_chr_entropy")
+    assert d["r2_linear"] > 0.98
+    assert np.isclose(d["slope_per_unit_fraction"], 0.0017, rtol=0.1)
+
+
+def test_dose_response_own_baseline_lod_scales_with_noise():
+    from cfdna_insight.dilution import dose_response
+    quiet = dose_response(_synthetic_series(noise=1e-05, seed=1),
+                          "an_chr_entropy")
+    noisy = dose_response(_synthetic_series(noise=1e-04, seed=1),
+                          "an_chr_entropy")
+    assert noisy["lod_own_baseline_fraction"] > \
+        quiet["lod_own_baseline_fraction"] * 3
+
+
+def test_dose_response_flat_feature_has_no_linearity():
+    from cfdna_insight.dilution import dose_response
+    d = dose_response(_synthetic_series(slope=0.0, noise=5e-05, seed=2),
+                      "an_chr_entropy")
+    assert d["r2_linear"] < 0.6
+    assert abs(d["slope_per_unit_fraction"]) < 1e-4
+
+
+def test_dose_response_rejects_unknown_feature():
+    from cfdna_insight.dilution import dose_response
+    with pytest.raises(KeyError):
+        dose_response(_synthetic_series(), "not_a_feature")
+
+
+def test_check_direction_flags_discordant_donor():
+    from cfdna_insight.dilution import check_direction
+    # cohort says cases are higher; this donor's slope is negative
+    d = {"feature": "an_coverage_cv", "slope_per_unit_fraction": -0.072}
+    msg = check_direction(d, cohort_case_higher=True)
+    assert msg is not None and "opposite side" in msg
+
+
+def test_check_direction_silent_when_concordant():
+    from cfdna_insight.dilution import check_direction
+    d = {"feature": "an_chr_entropy", "slope_per_unit_fraction": +0.0017}
+    assert check_direction(d, cohort_case_higher=True) is None
+
+
+def test_check_direction_silent_without_cohort_info():
+    from cfdna_insight.dilution import check_direction
+    d = {"feature": "x", "slope_per_unit_fraction": -1.0}
+    assert check_direction(d, cohort_case_higher=None) is None
+
+
+def test_dose_response_reports_direction():
+    from cfdna_insight.dilution import dose_response
+    d = dose_response(_synthetic_series(slope=0.0017), "an_chr_entropy")
+    assert d["direction"] == "increases with cancer fraction"

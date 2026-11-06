@@ -93,7 +93,8 @@ def main() -> int:
     groups = samples["study"].to_numpy()
 
     print(f"[info] {len(order)} samples, {y.sum()} cancer, "
-          f"{len(y) - y.sum()} non-cancer, {len(np.unique(groups))} studies")
+          f"{len(y) - y.sum()} non-cancer, "
+          f"{len(np.unique(groups))} {args.grouping} group(s)")
 
     if "coverage" in blocks and "window_arms" in blocks:
         blocks["cnv"] = build_cnv_block(
@@ -228,7 +229,7 @@ def main() -> int:
 
     summary = {
         "n_samples": len(order), "n_cancer": int(y.sum()),
-        "n_studies": int(len(np.unique(groups))),
+        "n_groups": int(len(np.unique(groups))),
         "n_features": int(X.shape[1]),
         "estimator": args.estimator,
         "auc_mean": main_res.auc_mean,

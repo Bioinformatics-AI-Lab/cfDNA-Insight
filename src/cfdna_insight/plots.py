@@ -118,3 +118,42 @@ def plot_dilution(series: pd.DataFrame, threshold: float, out: str) -> str:
     fig.savefig(out, dpi=200)
     plt.close(fig)
     return out
+
+
+def plot_paired_feature(values: pd.Series, pair_id: pd.Series,
+                        label: pd.Series, out: str,
+                        feature_name: str = "", ylabel: str = "") -> str:
+    """One line per matched pair, control on the left and case on the right.
+
+    This is the right picture for a matched design and a scatter or boxplot is
+    the wrong one: the comparison that the study supports is within pair, and
+    between-pair spread is exactly the variance the matching was meant to
+    remove. A feature can separate cleanly pair by pair while the two group
+    distributions overlap almost completely, and only this plot shows that.
+    """
+    plt = _mpl()
+    df = pd.DataFrame({"v": values, "pair": pair_id, "label": label})
+    piv = df.pivot_table(index="pair", columns="label", values="v").dropna()
+    if piv.empty or "cancer" not in piv or "healthy" not in piv:
+        raise ValueError("need both cancer and healthy per pair")
+
+    up = piv["cancer"] > piv["healthy"]
+    fig, ax = plt.subplots(figsize=(5.2, 4.6))
+    for _, r in piv.iterrows():
+        rising = r["cancer"] > r["healthy"]
+        ax.plot([0, 1], [r["healthy"], r["cancer"]],
+                color="#d1495b" if rising else "#3b7dd8",
+                alpha=0.65, lw=1.2, marker="o", ms=3.5,
+                markerfacecolor="white", markeredgewidth=1.0)
+
+    ax.set_xlim(-0.25, 1.25)
+    ax.set_xticks([0, 1])
+    ax.set_xticklabels(["matched\ncontrol", "case"])
+    ax.set_ylabel(ylabel or feature_name or "value")
+    ax.set_title(f"{feature_name}\n{int(up.sum())} of {len(piv)} pairs higher "
+                 f"in the case", fontsize=10)
+    ax.spines[["top", "right"]].set_visible(False)
+    fig.tight_layout()
+    fig.savefig(out, dpi=200)
+    plt.close(fig)
+    return out

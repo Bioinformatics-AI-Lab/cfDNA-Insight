@@ -1,0 +1,53 @@
+{
+  "cancer_donor": "MAL1246",
+  "healthy_donor": "MAL1246m",
+  "blocks": [
+    "aneuploidy"
+  ],
+  "n_training_donors": 64,
+  "training_auc": 0.859765625,
+  "total_fragments_per_mixture": 5000000,
+  "replicates_per_level": 5,
+  "fractions_tested": [
+    0.0,
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+    0.1,
+    0.25,
+    0.5,
+    1.0
+  ],
+  "threshold_at_95_specificity": 0.530864551390411,
+  "lod95_plasma_fraction": 1.0,
+  "dose_response": {
+    "an_chr_entropy": {
+      "feature": "an_chr_entropy",
+      "slope_per_unit_fraction": 0.0016770920654398448,
+      "direction": "increases with cancer fraction",
+      "r2_linear": 0.9979936099079906,
+      "span_over_series": 0.0016855567935152305,
+      "replicate_sd_at_zero": 4.568072586447064e-05,
+      "replicate_sd_as_pct_of_span": 2.7101267688051873,
+      "n_sd": 3.0,
+      "lod_own_baseline_fraction": 0.0817141649033265
+    },
+    "an_coverage_cv": {
+      "feature": "an_coverage_cv",
+      "slope_per_unit_fraction": -0.07222425331529782,
+      "direction": "decreases with cancer fraction",
+      "r2_linear": 0.9960867904342551,
+      "span_over_series": -0.07185900994098487,
+      "replicate_sd_at_zero": 0.001553769804198304,
+      "replicate_sd_as_pct_of_span": 2.162247720187569,
+      "n_sd": 3.0,
+      "lod_own_baseline_fraction": 0.06453939222113911
+    }
+  },
+  "cohort_direction_case_higher": {
+    "an_chr_entropy": true,
+    "an_coverage_cv": true
+  },
+  "note": "LOD is a fraction of cancer-patient plasma, not tumour fraction. The donor's plasma is itself mostly haematopoietic cfDNA, so the true ctDNA LOD is lower by a factor equal to that donor's tumour fraction, which this cohort does not report. Treat this as an upper bound, and as bounded below by the coarsest gap in the tested grid. lod95_plasma_fraction is against a population threshold; dose_response.lod_own_baseline_fraction is against the same donor's own zero point, which is the monitoring case."
+}
