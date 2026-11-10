@@ -40,7 +40,7 @@ The band is the spread across CV repartitions, not a sampling confidence interva
 
 Size summary 0.500, size histogram 0.462, DELFI 0.625. DELFI is unchanged by depth adjustment (0.629), so this is not a coverage artefact.
 
-The per-feature paired test is the clearer statement. Within the 33 matched pairs, every fragment-size feature splits near evenly:
+The per-feature paired test is the clearer statement. Within the 33 matched pairs, every scalar fragment feature splits near evenly (the last two rows are a motif summary and the aneuploidy feature, for contrast):
 
 | Feature | Case higher in | p |
 |---|---:|---:|
@@ -77,7 +77,10 @@ Each line is one matched pair. The group distributions overlap almost completely
 
 ### End motifs
 
-0.894 raw, 0.593 after residualising on chromosome entropy.
+0.899 in the ablation above. Within the confounder audit, which uses fewer CV
+repeats, the same block gives 0.894 raw and **0.593 after residualising on
+chromosome entropy**. The before/after pair is what matters; both come from
+the same run.
 
 4-mers are read off the reference at fragment termini. Arm-level gains and losses redistribute coverage across sequence contexts with different base composition, which shifts the 4-mer spectrum without any change in nuclease activity. Treat the motif block as a second measurement of copy number, not as an additional modality.
 
@@ -184,11 +187,25 @@ python scripts/01_extract_features.py --samples config/samples.tsv \
 python scripts/02_train_evaluate.py --features results/features \
     --outdir results/full --cnv-fold-safe
 python scripts/04_confounder_audit.py --features results/features
+
+# generalisation across tumour type rather than cohort
+python scripts/02_train_evaluate.py --features results/features \
+    --samples config/samples_by_cancer_type.tsv --grouping cancer-type \
+    --outdir results/by_cancer_type --skip-permutation
+
+# limit of detection: one donor pair, then the whole liver panel (~1 h)
+python scripts/03_dilution_lod.py --features results/features \
+    --cancer MAL1246 --healthy MAL1246m --blocks aneuploidy \
+    --genome hg19 --outdir results/dilution
+python scripts/05_dilution_panel.py --features results/features \
+    --cancer-type liver --genome hg19 --outdir results/dilution_panel
 ```
 
 The smoke test runs everything on simulated fragment files so a broken environment fails in two minutes instead of three hours into a real run. Its numbers mean nothing; the simulator plants the effect it then finds.
 
-Feature extraction takes about 13 s/sample, so 15 minutes for all 66.
+Feature extraction takes about 13 s/sample, so 15 minutes for all 66. The
+dilution panel is about 8 minutes per pair; it writes each pair as it finishes
+and skips completed ones on a re-run.
 
 ## Layout
 
@@ -198,12 +215,14 @@ notebooks/           01 cohort and QC, 02 fragmentomics, 03 modelling
 src/cfdna_insight/   io, bins, fragmentomics, cnv, features, modeling,
                      dilution, plots, simulate
 scripts/             00 smoke/fetch/metadata/samplesheet/pairing,
-                     01 features, 02 evaluate, 03 dilution, 04 audit
+                     01 features, 02 evaluate, 03 dilution,
+                     04 confounder audit, 05 dilution panel
 config/              config.yaml, samples.tsv, samples_by_cancer_type.tsv
 tests/               64 tests, simulated data only, no downloads
 docs/                project notes, methodology, biological background,
                      limitations
-results/             summary.json, confounder_audit.json, figures, tables
+results/             summary.json, confounder_audit.json,
+                     dilution/, dilution_panel/, figures, tables
 ```
 
 All AUCs above reproduced to three decimals on macOS/arm64 and Linux/x86-64.
