@@ -1,0 +1,83 @@
+{
+  "feature": "an_chr_entropy",
+  "n_pairs": 8,
+  "n_concordant": 8,
+  "lod_own_baseline_median": 0.10827230222428555,
+  "lod_own_baseline_min": 0.06659117193499142,
+  "lod_own_baseline_max": 0.28916298767746657,
+  "r2_median": 0.99900126024414,
+  "per_pair": [
+    {
+      "pair_id": "MAL0646",
+      "span": 0.000511765179015411,
+      "r2": 0.9901322586018512,
+      "replicate_sd": 4.7505280959900195e-05,
+      "lod_own_baseline": 0.28916298767746657,
+      "lod_population": 1.0,
+      "concordant": true
+    },
+    {
+      "pair_id": "MAL0714",
+      "span": 0.0015192689378196178,
+      "r2": 0.9988591589485567,
+      "replicate_sd": 4.911464902015747e-05,
+      "lod_own_baseline": 0.09805286875938196,
+      "lod_population": null,
+      "concordant": true
+    },
+    {
+      "pair_id": "MAL0944",
+      "span": 0.0014416625449129583,
+      "r2": 0.9991433615397234,
+      "replicate_sd": 5.485652435324328e-05,
+      "lod_own_baseline": 0.11572435440441255,
+      "lod_population": null,
+      "concordant": true
+    },
+    {
+      "pair_id": "MAL0945",
+      "span": 0.0026023434350543884,
+      "r2": 0.9995054289099499,
+      "replicate_sd": 5.762686368158888e-05,
+      "lod_own_baseline": 0.06659117193499142,
+      "lod_population": null,
+      "concordant": true
+    },
+    {
+      "pair_id": "MAL1205",
+      "span": 0.001255191572486991,
+      "r2": 0.9980384677506878,
+      "replicate_sd": 4.102029325644844e-05,
+      "lod_own_baseline": 0.10082025004415857,
+      "lod_population": 1.0,
+      "concordant": true
+    },
+    {
+      "pair_id": "MAL1237",
+      "span": 0.000967468438734187,
+      "r2": 0.9995196864643808,
+      "replicate_sd": 3.975065242482885e-05,
+      "lod_own_baseline": 0.12331089934798721,
+      "lod_population": 0.5,
+      "concordant": true
+    },
+    {
+      "pair_id": "MAL1246",
+      "span": 0.0016954750764573978,
+      "r2": 0.9993833359394533,
+      "replicate_sd": 4.568072586447064e-05,
+      "lod_own_baseline": 0.08035497576325762,
+      "lod_population": 1.0,
+      "concordant": true
+    },
+    {
+      "pair_id": "MAL1323",
+      "span": 0.0011165659011176388,
+      "r2": 0.9962487485218616,
+      "replicate_sd": 5.371130390924155e-05,
+      "lod_own_baseline": 0.1490585952425067,
+      "lod_population": null,
+      "concordant": true
+    }
+  ]
+}

@@ -31,6 +31,18 @@ is consistent with a real effect and also with a lucky pair of summary
 statistics. The paired test (30 of 33, p = 3e-07) is the stronger evidence.
 Replication in an independent cohort would settle it; none was available.
 
+**The LOD is donor-specific and the panel is small.** Across the eight liver
+pairs the own-baseline LOD ranges 0.067 to 0.289, a 4.3x spread that tracks
+each donor's case-control difference rather than stage: the best and worst
+pairs are both stage 1a. The median, 0.108, comes from eight donors of one
+cancer type; the breast pairs were not run. Any single-donor figure is close
+to meaningless, which an earlier version of the README learned the hard way by
+quoting 0.08 from a better-than-typical pair.
+
+**Population-threshold detection essentially fails.** Four of eight pairs were
+not flagged at any tested fraction, undiluted included. That is the honest
+read of this feature as a tumour-naive screening marker on this cohort.
+
 **Leave-one-cancer-type-out is not external validation.** 0.824 overall,
 0.969 breast to liver, from one lab and five shared batches. It tests transfer
 across tumour type only. The breast-held-out direction (0.773) trains on 16
@@ -122,6 +134,7 @@ healthy donor do not generalise; running several pairs would give a range.
 | Single-study evaluation | Three or more independent cohorts, held out cleanly |
 | Aneuploidy vs fragmentation unresolved | Higher-coverage WGS on the same donors |
 | Two-feature model unreplicated | An independent matched cohort |
+| LOD from 8 liver donors only | Run the 25 breast pairs; add a second cohort |
 
 None of these are available for a public-data portfolio project. That is the
 reason the evaluation is built the way it is: if the design cannot be fixed, the

@@ -32,7 +32,7 @@ Nested CV, 5 outer x 4 inner folds, 10 repeats, ridge logistic regression.
 
 Full model AUC 0.849, permutation p = 0.005 (200 permutations, which is the floor). Sensitivity 0.70 at 95% specificity. Leave-one-cancer-type-out 0.824; trained on breast and tested on liver, 0.969.
 
-An in silico dilution series puts a limit of detection on the aneuploidy signal: see below.
+An in silico dilution series over all 8 liver pairs puts a limit of detection on the aneuploidy signal: median 0.11 plasma fraction against the donor's own baseline, and essentially undetectable against a population threshold. See below.
 
 The band is the spread across CV repartitions, not a sampling confidence interval. The true interval at n=66 is wider.
 
@@ -83,60 +83,65 @@ Each line is one matched pair. The group distributions overlap almost completely
 
 ## Limit of detection
 
-Synthetic mixtures of one cancer donor's plasma into their own matched
-control's, at known ratios, rescored with a model trained on the other 64
-donors. Donor MAL1246 (liver, stage 1b) into MAL1246m, 5M fragments per
-mixture, 5 replicates per level.
+Synthetic mixtures of a cancer donor's plasma into their own matched control's
+at known ratios, rescored with a model trained on the other 64 donors. All
+eight liver pairs, 5M fragments per mixture, 5 replicates per level.
 
-Subsampling to 5M reproduces both features to the sixth decimal against the
-donors at full depth (45M and 12M), so the mixtures are faithful.
+Subsampling to 5M reproduces both features to the sixth decimal against donors
+at full depth (45M and 12M), so the mixtures are faithful.
 
-| fraction of cancer plasma | 0 | 0.05 | 0.10 | 0.25 | 0.50 | 1.0 |
-|---|---:|---:|---:|---:|---:|---:|
-| chromosome entropy | 0.96377 | 0.96386 | 0.96393 | 0.96425 | 0.96462 | 0.96546 |
-| model score | 0.494 | 0.496 | 0.498 | 0.509 | 0.519 | 0.546 |
+Chromosome entropy is linear in mixing fraction in every pair, R² median 0.999
+(min 0.990), with a replicate SD near 5e-05. The feature measures tumour
+content precisely, and all eight pairs move in the cohort direction.
 
-Two numbers come out of this, and they say different things.
+What it cannot do is measure it against a threshold set on other people.
 
-**Against a population threshold, LOD95 is 1.0**: the mixture is not flagged
-at any dilution. Taken alone that reads as a failure.
+| | own-baseline LOD (3 SD) | population threshold |
+|---|---:|---|
+| median across 8 pairs | **0.108** | not detected |
+| best pair (MAL0945) | 0.067 | not detected |
+| worst pair (MAL0646) | 0.289 | detected only undiluted |
 
-**Chromosome entropy is linear in mixing fraction, R² = 0.998**, slope
-1.68e-03 per unit fraction, with a replicate SD of 4.6e-05, about 3% of the
-span. So it is not failing to track tumour content. It tracks it precisely.
+![LOD across donors](results/figures/lod_panel.png)
 
-What limits it is that this donor's whole case-control difference spans 28% of
-the chromosome-entropy range across the cohort. Person-to-person variation is
-several times the size of a stage-1b tumour's effect, so a threshold set on
-other people's samples is the wrong instrument. Against the same donor's own
-baseline the limit is **0.08 plasma fraction at 3 SD**.
+Against a population threshold the feature essentially never works: four of
+the eight pairs were not flagged at any fraction tested, including undiluted;
+three only at 1.0; one at 0.5. Against the donor's own baseline the median
+limit is 0.11 plasma fraction.
 
-That is the difference between screening a stranger and monitoring a patient,
-and here it is a factor of twelve.
+**The spread between donors is the result worth quoting, not any single
+number.** The own-baseline LOD varies 4.3x across pairs, and it tracks the
+size of that donor's case-control difference almost exactly, since replicate
+precision is near-constant. MAL0646 and MAL0945 are both stage 1a and sit at
+opposite ends, so this is not a stage effect. It is how much that particular
+tumour shifts the feature.
 
-Three caveats, in order of how much they matter.
+An earlier version of this README quoted 0.08 from MAL1246 alone. That pair
+turns out to be better than typical; the median is 0.11 and the range runs to
+0.29. A single-donor LOD is not a cohort estimate, and the first pair here was
+chosen for sequencing depth rather than effect size.
 
-This is **one donor pair**. The LOD is a single measurement, not a cohort
-estimate, and running the other liver pairs would give a range rather than a
-point.
+Caveats, in order of how much they matter.
 
 **Linearity is weaker evidence than it looks.** Mixing two samples that differ
 in any feature produces a linear response in that feature by construction.
-R² = 0.998 says the series resolves the mixture cleanly; it does not
-independently confirm that the feature tracks cancer. The cohort-level paired
-test does that.
+R² = 0.999 says the series resolves the mixture cleanly; it does not
+independently confirm the feature tracks cancer. The cohort-level paired test
+does that.
 
 The second aneuploidy feature makes the point concrete. `an_coverage_cv` is
-also linear here (R² = 0.996) and gives a lower own-baseline LOD, 0.065, but
-its slope is *negative* for this donor while cases exceed controls in 23 of 33
-pairs cohort-wide. MAL1246 is one of the discordant pairs on that feature, so
-its LOD measures resolution rather than detection, and the README quotes the
-entropy figure only. `03_dilution_lod.py` compares each slope against the
-cohort direction and warns when they disagree.
+equally linear and gives lower LODs, but its slope is *negative* in two of the
+eight donors while cases exceed controls in 23 of 33 pairs cohort-wide. Those
+donors' LODs measure resolution rather than detection.
+`03_dilution_lod.py` and `05_dilution_panel.py` compare each slope against the
+cohort direction and exclude discordant donors from the pooled figure.
 
-Finally, replicate spread captures sampling noise in the mixture, not
-extraction, library prep or batch, so 0.08 is optimistic for a real
-longitudinal assay.
+Replicate spread captures sampling noise in the mixture, not extraction,
+library prep or batch, so every own-baseline figure here is optimistic for a
+real longitudinal assay.
+
+Eight donors is still a small panel, and all of them are liver. The breast
+pairs were not run.
 
 ## Validation details
 

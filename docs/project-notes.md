@@ -169,10 +169,21 @@ threshold it is not detected at any dilution, because this donor's whole
 case-control difference spans only 28% of the between-person range. Against
 the same donor's own baseline the limit is 0.08 plasma fraction.
 
-A factor of twelve between screening a stranger and monitoring a patient,
-falling out of 45 synthetic mixtures. That maps onto the real split in the
-field between tumour-naive screening and tumour-informed longitudinal
-monitoring.
+That maps onto the real split in the field between tumour-naive screening and
+tumour-informed longitudinal monitoring.
+
+Running all eight liver pairs afterwards changed the number and taught the
+more useful lesson. The own-baseline LOD ranges 0.067 to 0.289 across donors,
+median 0.108, a 4.3x spread. MAL1246, the pair I happened to pick first, came
+in at 0.080, better than typical, and I had picked it for sequencing depth
+rather than effect size. The spread tracks how much each tumour shifts the
+feature, not stage: the best and worst pairs are both stage 1a. Against a
+population threshold, four of the eight were never detected at all, undiluted
+included.
+
+I had predicted median 0.08 and a range of 0.03 to 0.20 before running it.
+Optimistic at both ends. Worth remembering that the first donor I pick is not
+a cohort.
 
 **One caveat I should not forget**, because it is the sort of thing an
 interviewer would press on: R² = 0.998 is weaker evidence than it looks.
@@ -201,5 +212,6 @@ Built a cfDNA cancer classifier on 33 matched case-control pairs. The famous
 fragmentomic feature returned nothing. A two-feature aneuploidy proxy beat a
 1,193-feature model. The negative control caught a biological feature I had
 mistakenly put inside it. A standard shortcut was measured to inflate AUC by
-0.155. And the limit-of-detection analysis separated screening from
-monitoring by a factor of twelve.
+0.155. And the limit-of-detection analysis separated screening from monitoring:
+undetectable against a population threshold, median 0.11 plasma fraction
+against the patient's own baseline, across eight donors.
